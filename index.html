@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI自動生成掲示板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'M PLUS 1p', sans-serif;
+            padding-top: 80px; /* Header height */
+            background-color: #F0E0D6;
+        }
+        .thread-post {
+            border-bottom: 1px solid #ccc;
+        }
+        .post-header {
+            color: #888;
+        }
+        .post-author {
+            color: #008000;
+            font-weight: 700;
+        }
+        .post-content {
+            text-indent: 1em;
+            line-height: 1.6;
+        }
+        .loader {
+            border: 4px solid #ccc;
+            border-top: 4px solid #008000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        .spinner-small {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            width: 16px;
+            height: 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .persona-chip {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .persona-chip:hover {
+            transform: scale(1.05);
+        }
+        /* Modal Animation */
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        .modal-leave { animation: fadeOut 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md shadow-sm z-40 h-20">
+        <div class="container mx-auto px-4 md:px-8 h-full flex justify-between items-center">
+            <div class="flex items-center">
+                <button id="openMenuBtn" class="p-2 mr-4 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h1 class="text-2xl font-bold text-gray-900">AI自動生成掲示板</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                 <!-- Export Dropdown -->
+                <div id="exportContainer" class="relative hidden">
+                    <button id="exportBtn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 font-semibold flex items-center">
+                        エクスポート
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="exportDropdown" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
+                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                            <a href="#" id="downloadJsonBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">JSONとして保存</a>
+                            <a href="#" id="downloadImageBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">画像として保存</a>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="openCreateThreadModalBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block -mt-1 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    スレッドを作成
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Menu -->
+    <div id="sideMenu" class="fixed top-0 left-0 w-full max-w-md h-full bg-white shadow-lg z-50 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold">設定</h2>
+                <button id="closeMenuBtn" class="text-gray-500 hover:text-gray-800">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="space-y-8">
+                <!-- Persona Settings (Combined) -->
+                <div class="bg-white p-6 rounded-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">AIペルソナ設定 (<span id="personaCount">0</span>)</h2>
+                    <p class="text-sm text-gray-500 mb-4">項目が未入力の場合、AIが自動で補完・生成します。</p>
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label for="personaName" class="block text-sm font-medium text-gray-700">ペルソナ名</label>
+                            <input type="text" id="personaName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="例：冷静な分析家">
+                        </div>
+                        <div>
+                            <label for="personaPrompt" class="block text-sm font-medium text-gray-700">役割・設定 (システムプロンプト)</label>
+                            <textarea id="personaPrompt" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="例：あなたは冷静な分析家です。データに基づき..."></textarea>
+                        </div>
+                        <button id="addPersonaBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                            <span id="addPersonaBtnText">ペルソナを追加</span>
+                        </button>
+                    </div>
+                    <hr class="my-4">
+                    <h3 class="text-md font-semibold mb-3 text-gray-600">登録済みペルソナ (クリックで編集)</h3>
+                    <div id="personaList" class="flex flex-wrap gap-2">
+                         <!-- Compact persona chips will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Model Settings -->
+                <div class="bg-white p-6 rounded-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">共通設定</h2>
+                    <div class="space-y-4">
+                         <div>
+                             <label for="settingsModelSelection" class="block text-sm font-medium text-gray-700">使用モデル</label>
+                             <select id="settingsModelSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash-preview-05-20</option>
+                                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                             </select>
+                             <p class="text-xs text-gray-500 mt-1">ペルソナ自動生成とスレッドでのレス生成に使用されます。</p>
+                        </div>
+                        <div>
+                            <label for="apiKeyInput" class="block text-sm font-medium text-gray-700">Gemini APIキー</label>
+                             <input type="password" id="apiKeyInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="APIキーを入力">
+                             <p class="text-xs text-gray-500 mt-1">Flash Preview以外のモデルを使用する場合に必要です。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Backdrop -->
+    <div id="menuBackdrop" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden"></div>
+
+    <!-- Edit Persona Modal -->
+    <div id="editPersonaModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 modal-enter max-h-full overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">ペルソナの編集</h3>
+                <button id="closeEditModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <input type="hidden" id="editPersonaId">
+            <div class="space-y-4">
+                <div>
+                    <label for="editPersonaName" class="block text-sm font-medium text-gray-700">ペルソナ名</label>
+                    <input type="text" id="editPersonaName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                </div>
+                <div>
+                    <label for="editPersonaPrompt" class="block text-sm font-medium text-gray-700">役割・設定</label>
+                    <textarea id="editPersonaPrompt" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancelEditBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
+                    <button id="savePersonaBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">変更を保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Thread Modal -->
+    <div id="createThreadModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 modal-enter max-h-full overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">新しいスレッドを作成</h3>
+                <button id="closeCreateThreadModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <!-- Source Generation Section -->
+                <div class="p-4 bg-gray-50 rounded-lg border">
+                    <h4 class="text-md font-semibold text-gray-800 mb-2">ソースから自動生成</h4>
+                    
+                    <!-- Tabs -->
+                    <div class="mb-3">
+                        <div class="border-b border-gray-200">
+                            <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                                <button id="tabUrl" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">URL</button>
+                                <button id="tabText" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">テキスト</button>
+                            </nav>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <!-- URL Panel -->
+                        <div id="tabPanelUrl">
+                            <label for="newArticleUrl" class="block text-sm font-medium text-gray-700">記事のURL</label>
+                            <div class="flex space-x-2">
+                                <input type="url" id="newArticleUrl" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="https://example.com/news/...">
+                                <button id="addUrlBtn" class="mt-1 bg-gray-200 text-gray-700 px-3 rounded-md hover:bg-gray-300 font-bold">追加</button>
+                            </div>
+                            <div id="urlListContainer" class="space-y-2 mt-2"></div>
+                        </div>
+                        
+                        <!-- Text Panel -->
+                        <div id="tabPanelText" class="hidden">
+                             <label for="sourceText" class="block text-sm font-medium text-gray-700">記事・テキストを貼り付け</label>
+                             <textarea id="sourceText" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="ここにテキストを貼り付けてください..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="generatorPersona" class="block text-sm font-medium text-gray-700">生成するペルソナ</label>
+                            <select id="generatorPersona" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select>
+                        </div>
+                        <button id="generateFromSourceBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center font-semibold disabled:bg-blue-400 disabled:cursor-not-allowed">
+                            <span id="generateBtnText">ソースからスレッド内容を生成</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="relative py-2">
+                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center">
+                        <span class="bg-white px-2 text-sm text-gray-500">または</span>
+                    </div>
+                </div>
+
+                <!-- Manual Input Section -->
+                <div>
+                    <label for="threadTitle" class="block text-sm font-medium text-gray-700">スレッドタイトル</label>
+                    <input type="text" id="threadTitle" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="AIは人間を超えるか？">
+                </div>
+                <div>
+                    <label for="threadBody" class="block text-sm font-medium text-gray-700">本文 (最初の投稿)</label>
+                    <textarea id="threadBody" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="シンギュラリティについて、様々な観点から議論したい。"></textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-1">
+                        <label for="maxResponses" class="block text-sm font-medium text-gray-700">レス停止数</label>
+                        <input type="number" id="maxResponses" value="5" min="1" max="50" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                    </div>
+                    <div class="col-span-1">
+                        <label for="referenceCount" class="block text-sm font-medium text-gray-700">AI文脈参照数</label>
+                        <input type="number" id="referenceCount" value="5" min="1" max="50" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                    </div>
+                    <div class="col-span-1">
+                        <label for="responseLength" class="block text-sm font-medium text-gray-700">最大文字数</label>
+                        <input type="number" id="responseLength" value="80" min="10" max="500" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button id="cancelCreateThreadBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
+                    <button id="startThreadBtn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 font-bold">議論を開始！</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <div class="grid grid-cols-1 gap-8">
+            <!-- Main Column: Thread Display -->
+            <div id="threadParent" class="bg-[#F0F0F0] p-4 border-2 border-gray-400">
+                <div id="threadHeader" class="pb-2 mb-2">
+                     <h2 class="text-2xl font-semibold">掲示板</h2>
+                </div>
+
+                <div id="threadContainer" class="space-y-3">
+                    <div id="welcomeMessage" class="text-center text-gray-600 py-10">
+                        <p class="text-lg font-semibold">ようこそ！</p>
+                        <p>まだスレッドがありません。</p>
+                        <p>まずは左上のメニューからAIペルソナを登録し、右上のボタンからスレッドを作成してください。</p>
+                    </div>
+                </div>
+                 <!-- Generation Controls -->
+                <div id="generationControls" class="hidden items-center justify-between mt-4 p-2 bg-gray-200/50 rounded-md">
+                    <div id="generationStatus" class="flex items-center space-x-2">
+                        <div class="loader"></div>
+                        <span id="generationStatusText" class="text-gray-700 font-medium">AIがレスを生成中...</span>
+                    </div>
+                    <div id="pausedControls" class="hidden items-center space-x-2">
+                        <label for="continueMaxResponses" class="text-sm">レス停止数:</label>
+                        <input type="number" id="continueMaxResponses" class="w-20 border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm">一時停止</button>
+                        <button id="stopBtn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">停止</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- Element Declarations ---
+const personaNameInput = document.getElementById('personaName');
+const personaPromptInput = document.getElementById('personaPrompt');
+const addPersonaBtn = document.getElementById('addPersonaBtn');
+const addPersonaBtnText = document.getElementById('addPersonaBtnText');
+const personaList = document.getElementById('personaList');
+const personaCount = document.getElementById('personaCount');
+
+const threadTitleInput = document.getElementById('threadTitle');
+const threadBodyInput = document.getElementById('threadBody');
+const maxResponsesInput = document.getElementById('maxResponses');
+const referenceCountInput = document.getElementById('referenceCount');
+const responseLengthInput = document.getElementById('responseLength');
+const settingsModelSelection = document.getElementById('settingsModelSelection');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const startThreadBtn = document.getElementById('startThreadBtn');
+const threadContainer = document.getElementById('threadContainer');
+const threadHeader = document.getElementById('threadHeader');
+
+const openMenuBtn = document.getElementById('openMenuBtn');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
+const sideMenu = document.getElementById('sideMenu');
+const menuBackdrop = document.getElementById('menuBackdrop');
+
+// Edit Modal Elements
+const editPersonaModal = document.getElementById('editPersonaModal');
+const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const savePersonaBtn = document.getElementById('savePersonaBtn');
+const editPersonaId = document.getElementById('editPersonaId');
+const editPersonaName = document.getElementById('editPersonaName');
+const editPersonaPrompt = document.getElementById('editPersonaPrompt');
+
+// Create Thread Modal Elements
+const createThreadModal = document.getElementById('createThreadModal');
+const openCreateThreadModalBtn = document.getElementById('openCreateThreadModalBtn');
+const closeCreateThreadModalBtn = document.getElementById('closeCreateThreadModalBtn');
+const cancelCreateThreadBtn = document.getElementById('cancelCreateThreadBtn');
+const newArticleUrlInput = document.getElementById('newArticleUrl');
+const addUrlBtn = document.getElementById('addUrlBtn');
+const urlListContainer = document.getElementById('urlListContainer');
+const sourceTextInput = document.getElementById('sourceText');
+const tabUrl = document.getElementById('tabUrl');
+const tabText = document.getElementById('tabText');
+const tabPanelUrl = document.getElementById('tabPanelUrl');
+const tabPanelText = document.getElementById('tabPanelText');
+const generatorPersonaSelect = document.getElementById('generatorPersona');
+const generateFromSourceBtn = document.getElementById('generateFromSourceBtn');
+const generateBtnText = document.getElementById('generateBtnText');
+
+// Generation Controls
+const generationControls = document.getElementById('generationControls');
+const generationStatus = document.getElementById('generationStatus');
+const generationStatusText = document.getElementById('generationStatusText');
+const pausedControls = document.getElementById('pausedControls');
+const continueMaxResponsesInput = document.getElementById('continueMaxResponses');
+const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+// Header elements
+const exportContainer = document.getElementById('exportContainer');
+const exportBtn = document.getElementById('exportBtn');
+const exportDropdown = document.getElementById('exportDropdown');
+const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+const downloadImageBtn = document.getElementById('downloadImageBtn');
+
+
+// --- State ---
+let personas = [];
+let currentThread = null;
+let sourceUrls = [];
+let isGenerating = false;
+let isPaused = false;
+let isFinished = false;
+let responseCount = 0;
+let maxResponses = 0;
+let referenceCount = 0;
+let responseLength = 0;
+let discussionModel = '';
+const ADMIN_AI_UID = 'ADMIN_AI';
+
+// --- Menu Logic ---
+function openMenu() {
+    sideMenu.classList.remove('-translate-x-full');
+    menuBackdrop.classList.remove('hidden');
+}
+
+function closeMenu() {
+    sideMenu.classList.add('-translate-x-full');
+    menuBackdrop.classList.add('hidden');
+}
+
+// --- Persona Management ---
+async function addPersona() {
+    let name = personaNameInput.value.trim();
+    let prompt = personaPromptInput.value.trim();
+
+    addPersonaBtn.disabled = true;
+    addPersonaBtnText.textContent = 'AIが生成中...';
+    const selectedModel = settingsModelSelection.value;
+
+    try {
+        if (!name && !prompt) {
+            const { personaName, personaPrompt } = await generateRandomPersona(selectedModel);
+            name = personaName;
+            prompt = personaPrompt;
+        } else if (!name) {
+            name = await generatePersonaName(prompt, selectedModel);
+        } else if (!prompt) {
+            prompt = await generatePersonaPrompt(name, selectedModel);
+        }
+
+        const emoji = await getEmojiForPersona(name, prompt, selectedModel);
+        const uid = crypto.randomUUID().slice(0, 8);
+        const newPersona = { id: Date.now(), name, prompt, emoji, uid };
+        personas.push(newPersona);
+
+        personaNameInput.value = '';
+        personaPromptInput.value = '';
+        personaNameInput.focus();
+        renderPersonas();
+
+    } catch (error) {
+        alert(`ペルソナの生成に失敗しました: ${error.message}`);
+    } finally {
+        addPersonaBtn.disabled = false;
+        addPersonaBtnText.textContent = 'ペルソナを追加';
+    }
+}
+
+
+function removePersona(id) {
+    event.stopPropagation(); // Prevent opening the edit modal
+    personas = personas.filter(p => p.id !== id);
+    renderPersonas();
+}
+
+function renderPersonas() {
+    personaList.innerHTML = '';
+    if (personas.length === 0) {
+        personaList.innerHTML = '<p class="text-gray-500 text-sm w-full">まだペルソナが登録されていません。</p>';
+    } else {
+        personas.forEach((persona, index) => {
+            const colors = [
+                { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300' },
+                { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
+                { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+                { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+                { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },
+            ];
+            const color = colors[index % colors.length];
+
+            const chip = document.createElement('div');
+            chip.className = `persona-chip flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-medium border ${color.bg} ${color.text} ${color.border}`;
+            chip.title = persona.prompt; // Show full prompt on hover
+            chip.onclick = () => openEditModal(persona.id);
+            chip.innerHTML = `
+                <span class="text-lg mr-1">${persona.emoji}</span>
+                <span>${persona.name}</span>
+                <button onclick="removePersona(${persona.id})" class="ml-2 -mr-1 text-current opacity-70 hover:opacity-100 font-bold">&times;</button>
+            `;
+            personaList.appendChild(chip);
+        });
+    }
+    personaCount.textContent = personas.length;
+}
+
+// --- Persona Edit Modal Logic ---
+function openEditModal(id) {
+    const persona = personas.find(p => p.id === id);
+    if (!persona) return;
+
+    editPersonaId.value = id;
+    editPersonaName.value = persona.name;
+    editPersonaPrompt.value = persona.prompt;
+
+    editPersonaModal.classList.remove('hidden');
+    editPersonaModal.classList.add('flex');
+    editPersonaModal.querySelector('div').classList.remove('modal-leave');
+    editPersonaModal.querySelector('div').classList.add('modal-enter');
+    editPersonaName.focus();
+}
+
+function closeEditModal() {
+    editPersonaModal.querySelector('div').classList.remove('modal-enter');
+    editPersonaModal.querySelector('div').classList.add('modal-leave');
+    setTimeout(() => {
+        editPersonaModal.classList.add('hidden');
+        editPersonaModal.classList.remove('flex');
+    }, 300);
+}
+
+async function savePersona() {
+    const id = parseInt(editPersonaId.value, 10);
+    let name = editPersonaName.value.trim();
+    let prompt = editPersonaPrompt.value.trim();
+
+    if (!name && !prompt) {
+        alert('ペルソナ名と役割・設定のどちらかは入力してください。');
+        return;
+    }
+
+    savePersonaBtn.disabled = true;
+    const selectedModel = settingsModelSelection.value;
+
+
+    try {
+        if (!name) {
+            name = await generatePersonaName(prompt, selectedModel);
+        } else if (!prompt) {
+            prompt = await generatePersonaPrompt(name, selectedModel);
+        }
+
+        const personaIndex = personas.findIndex(p => p.id === id);
+        if (personaIndex > -1) {
+            const emoji = await getEmojiForPersona(name, prompt, selectedModel);
+            personas[personaIndex].name = name;
+            personas[personaIndex].prompt = prompt;
+            personas[personaIndex].emoji = emoji; // UID remains the same
+        }
+
+        renderPersonas();
+        closeEditModal();
+    } catch (error) {
+        alert(`ペルソナの更新に失敗しました: ${error.message}`);
+    } finally {
+        savePersonaBtn.disabled = false;
+    }
+}
+
+// --- Create Thread Modal Logic ---
+function populatePersonaSelector() {
+    generatorPersonaSelect.innerHTML = '';
+    if (personas.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = '先にペルソナを登録してください';
+        option.disabled = true;
+        generatorPersonaSelect.appendChild(option);
+    } else {
+        personas.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = `${p.emoji} ${p.name}`;
+            generatorPersonaSelect.appendChild(option);
+        });
+    }
+}
+
+function openCreateThreadModal() {
+    sourceUrls = [];
+    renderUrlList();
+    sourceTextInput.value = '';
+    switchTab('url'); // Default to URL tab
+    populatePersonaSelector();
+    createThreadModal.classList.remove('hidden');
+    createThreadModal.classList.add('flex');
+    createThreadModal.querySelector('div').classList.remove('modal-leave');
+    createThreadModal.querySelector('div').classList.add('modal-enter');
+    newArticleUrlInput.focus();
+}
+
+function closeCreateThreadModal() {
+    createThreadModal.querySelector('div').classList.remove('modal-enter');
+    createThreadModal.querySelector('div').classList.add('modal-leave');
+    setTimeout(() => {
+        createThreadModal.classList.add('hidden');
+        createThreadModal.classList.remove('flex');
+    }, 300);
+}
+
+function addUrlToList() {
+    const url = newArticleUrlInput.value.trim();
+    if (url) {
+        try {
+            new URL(url); // Validate URL format
+            sourceUrls.push(url);
+            renderUrlList();
+            newArticleUrlInput.value = '';
+            newArticleUrlInput.focus();
+        } catch (error) {
+            alert('有効なURLを入力してください。');
+        }
+    }
+}
+
+function removeUrlFromList(index) {
+    sourceUrls.splice(index, 1);
+    renderUrlList();
+}
+
+function renderUrlList() {
+    urlListContainer.innerHTML = '';
+    sourceUrls.forEach((url, index) => {
+        const urlItem = document.createElement('div');
+        urlItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded-md text-sm';
+        urlItem.innerHTML = `
+            <span class="truncate w-full pr-2">${url}</span>
+            <button onclick="removeUrlFromList(${index})" class="text-red-500 hover:text-red-700 font-bold">&times;</button>
+        `;
+        urlListContainer.appendChild(urlItem);
+    });
+}
+
+function switchTab(tab) {
+    if (tab === 'url') {
+        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
+        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        tabPanelUrl.classList.remove('hidden');
+        tabPanelText.classList.add('hidden');
+    } else {
+        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
+        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        tabPanelText.classList.remove('hidden');
+        tabPanelUrl.classList.add('hidden');
+    }
+}
+
+async function handleGenerateFromSource() {
+    const personaId = parseInt(generatorPersonaSelect.value, 10);
+    const isUrlTabActive = !tabPanelUrl.classList.contains('hidden');
+    const sourceText = sourceTextInput.value.trim();
+
+    if (isUrlTabActive && sourceUrls.length === 0) {
+        alert('少なくとも1つのURLを追加してください。');
+        return;
+    }
+    if (!isUrlTabActive && !sourceText) {
+        alert('テキストを入力してください。');
+        return;
+    }
+    if (isNaN(personaId)) {
+        alert('ペルソナを選択してください。');
+        return;
+    }
+
+    generateFromSourceBtn.disabled = true;
+    generateBtnText.innerHTML = `<div class="loader spinner-small animate-spin"></div><span class="ml-2">生成中...</span>`;
+
+    try {
+        let summary;
+        if (isUrlTabActive) {
+            summary = await getSummaryFromUrl(sourceUrls);
+        } else {
+            sourceUrls = []; // Clear URLs if generating from text
+            summary = `以下のテキストを要約し、議論のポイントを抽出してください:\n\n${sourceText}`;
+        }
+
+        const { title, body } = await generateThreadContent(summary, personaId);
+        threadTitleInput.value = title;
+        threadBodyInput.value = body;
+    } catch (error) {
+        console.error('Failed to generate thread from source:', error);
+        alert(`スレッドの生成に失敗しました。\nエラー: ${error.message}`);
+    } finally {
+        generateFromSourceBtn.disabled = false;
+        generateBtnText.textContent = 'ソースからスレッド内容を生成';
+    }
+}
+
+
+// --- API Call Logic (Persona Generation) ---
+async function getEmojiForPersona(name, prompt, model) {
+    const emojiList = ["😂","🤔","🤖","🚀","🧐","🎨","💼","📈","🌍","❤️","💡","🔥","⭐","🎉","👍","🤯","👨‍💻","👩‍🔬","👨‍🎨","🏛️","⚖️","🌿"];
+    const systemPrompt = `You are an expert at selecting a single emoji that best represents a given text. Your only output must be a single emoji from the provided list. Do not add any other text.`;
+    const userPrompt = `From the following list, pick the single best emoji to represent the persona described below.\n\nEmoji List: ${emojiList.join(", ")}\n\nPersona Name: ${name}\nPersona Role: ${prompt}\n\nSelected Emoji:`;
+    
+    try {
+        const emoji = await callGemini(systemPrompt, userPrompt, { model });
+        if (emojiList.includes(emoji)) {
+            return emoji;
+        }
+        return '👤'; // Fallback
+    } catch (error) {
+        console.error("Emoji generation failed:", error);
+        return '👤';
+    }
+}
+
+async function generatePersonaName(prompt, model) {
+    const systemPrompt = "You are an AI specializing in branding. Based on the provided role description, create a concise and creative persona name (in Japanese, max 10 characters) that perfectly captures its essence. Output only the name, no extra text.";
+    const userPrompt = `Role Description: "${prompt}"\n\nPersona Name:`;
+    return await callGemini(systemPrompt, userPrompt, { model });
+}
+
+async function generatePersonaPrompt(name, model) {
+    const systemPrompt = "You are a creative writer. Based on the provided persona name, write a short, clear role description (in Japanese) for an AI that embodies that name. Output only the description, no extra text.";
+    const userPrompt = `Persona Name: "${name}"\n\nRole Description:`;
+    return await callGemini(systemPrompt, userPrompt, { model });
+}
+
+async function generateRandomPersona(model) {
+    const systemPrompt = `Create a unique and interesting AI persona. Provide the output in a single JSON object with two keys: "personaName" (in Japanese, max 10 characters) and "personaPrompt" (a short role description in Japanese). Do not include any other text or markdown formatting.`;
+    return await callGemini(systemPrompt, "", { responseMimeType: 'application/json', model });
+}
+
+
+// --- API Call Logic (Thread Generation & Core) ---
+async function getSummaryFromUrl(urls) {
+    const model = settingsModelSelection.value;
+    const prompt = `Please provide a concise, neutral summary of the main points from the articles at these URLs: ${urls.join(', ')}`;
+    return await callGemini(null, prompt, { useGrounding: true, model });
+}
+
+async function generateThreadContent(summary, personaId) {
+    const model = settingsModelSelection.value;
+    const persona = personas.find(p => p.id === personaId);
+    if (!persona) throw new Error("指定されたペルソナが見つかりません。");
+
+    const systemPrompt = persona.prompt;
+    const userPrompt = `Based on the following article summary, create an engaging thread title and an initial post from your perspective as ${persona.name}. The title should be thought-provoking, and the post should encourage discussion. Provide the output in a single JSON object with two keys: "title" and "body". Do not include any other text or markdown formatting.
+
+Summary:
+${summary}`;
+    
+    return await callGemini(systemPrompt, userPrompt, { responseMimeType: 'application/json', model });
+}
+
+async function callGemini(systemPrompt, userPrompt, options = {}, retries = 3, delay = 1000) {
+    const modelToUse = options.model || settingsModelSelection.value;
+    const userApiKey = apiKeyInput.value.trim();
+
+    if (modelToUse !== 'gemini-2.5-flash-preview-05-20' && !userApiKey) {
+        throw new Error(`モデル「${modelToUse}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
+    }
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${userApiKey}`;
+    
+    const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+    };
+    if (systemPrompt) {
+         payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+    }
+    if (options.useGrounding) {
+        payload.tools = [{ "google_search": {} }];
+    }
+    if (options.responseMimeType) {
+        payload.generationConfig = { responseMimeType: options.responseMimeType };
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            let errorText = await response.text();
+            let errorMessage = `ステータス: ${response.status}`;
+            try {
+                // Try to parse the error as JSON for more details
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error?.message || JSON.stringify(errorJson);
+            } catch (e) {
+                // If it's not JSON, use the raw text
+                errorMessage = errorText || `ステータス: ${response.status} - 応答がありません`;
+            }
+            console.error('API Error Response:', errorMessage);
+            throw new Error(`APIリクエストに失敗しました: ${errorMessage}`);
+        }
+
+        const result = await response.json();
+        const candidate = result.candidates?.[0];
+        const text = candidate?.content?.parts?.[0]?.text;
+
+        if (text) {
+             if (options.responseMimeType === 'application/json') {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Failed to parse JSON response:", text);
+                    throw new Error("AIから無効なJSONレスポンスが返されました。");
+                }
+            }
+            return text.trim();
+        } else {
+            console.error("Unexpected API response structure:", result);
+            if (candidate && candidate.finishReason !== 'STOP') {
+                throw new Error(`生成が途中で停止しました。理由: ${candidate.finishReason}`);
+            }
+            throw new Error('予期しないAPIレスポンス形式です。');
+        }
+
+    } catch (error) {
+        console.error(`API呼び出し中のエラー (試行 ${4 - retries}):`, error);
+        if (retries > 1) {
+            await new Promise(res => setTimeout(res, delay));
+            return callGemini(systemPrompt, userPrompt, options, retries - 1, delay * 2);
+        } else {
+            throw error;
+        }
+    }
+}
+
+// --- Thread and Discussion Logic ---
+async function startDiscussion() {
+    const title = threadTitleInput.value.trim();
+    const body = threadBodyInput.value.trim();
+    const selectedModel = settingsModelSelection.value;
+    const userApiKey = apiKeyInput.value.trim();
+
+    if (!title || !body) {
+        alert('スレッドタイトルと本文を入力してください。');
+        return;
+    }
+    if (personas.length < 2) {
+        alert('少なくとも2つのAIペルソナを登録してください。');
+        return;
+    }
+    if (selectedModel !== 'gemini-2.5-flash-preview-05-20' && !userApiKey) {
+        alert(`モデル「${selectedModel}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
+        return;
+    }
+
+    maxResponses = parseInt(maxResponsesInput.value, 10);
+    referenceCount = parseInt(referenceCountInput.value, 10);
+    responseLength = parseInt(responseLengthInput.value, 10);
+    discussionModel = selectedModel;
+
+
+    closeCreateThreadModal();
+    
+    isGenerating = true;
+    isPaused = false;
+    isFinished = false;
+    responseCount = 0;
+
+    const userUID = crypto.randomUUID().slice(0, 8);
+    currentThread = {
+        title: title,
+        sources: [...sourceUrls],
+        posts: [
+            { author: 'あなた', content: body, timestamp: new Date().toISOString(), uid: userUID }
+        ]
+    };
+    
+    renderThread(title);
+    showGenerationControls();
+    generationLoop();
+}
+
+async function generationLoop() {
+    while (responseCount < maxResponses && isGenerating) {
+        if (isPaused) {
+            await new Promise(resolve => {
+                const check = setInterval(() => {
+                    if (!isPaused || !isGenerating) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                }, 200);
+            });
+        }
+        
+        if (!isGenerating) break;
+
+        updateGenerationStatus();
+
+        try {
+            const nextSpeakerName = await selectNextSpeaker(referenceCount);
+            if (!nextSpeakerName || nextSpeakerName.toLowerCase().startsWith('error')) {
+                console.error(`Error: Could not select the next speaker. (${nextSpeakerName})`);
+                break;
+            }
+
+            const nextSpeakerPersona = personas.find(p => p.name === nextSpeakerName);
+            if (!nextSpeakerPersona) {
+                 console.error(`Error: Persona "${nextSpeakerName}" not found.`);
+                 break;
+            }
+
+            const response = await generateResponse(nextSpeakerPersona, responseLength, referenceCount);
+            
+            const newPost = {
+                author: `${nextSpeakerPersona.emoji} ${nextSpeakerName}`,
+                content: response,
+                timestamp: new Date().toISOString(),
+                uid: nextSpeakerPersona.uid
+            };
+            currentThread.posts.push(newPost);
+            
+            responseCount++;
+            
+            const speakerIndex = personas.findIndex(p => p.name === nextSpeakerName);
+            addPostToThread(newPost.author, newPost.content, speakerIndex, newPost.timestamp, null, newPost.uid);
+            
+            await new Promise(res => setTimeout(res, 100));
+        } catch(error) {
+            console.error(`An API error occurred: ${error.message}`);
+            isPaused = true;
+            updateControlsForPauseState();
+        }
+    }
+
+    if(isGenerating){ // Loop finished because of maxResponses or another break
+        isGenerating = false;
+        isFinished = true;
+        updateControlsForFinishedState();
+    }
+}
+
+
+async function selectNextSpeaker(referenceCount) {
+    const relevantPosts = currentThread.posts.slice(-referenceCount);
+    const historyText = relevantPosts.map(p => `${p.author} (ID:${p.uid}): ${p.content}`).join('\n\n');
+
+    const personaNames = personas.map(p => p.name).join(', ');
+    
+    const systemPrompt = `You are the "Admin AI" facilitating a discussion between AIs.
+Considering the following conversation history and list of participants, select the single name of the participant who should speak next to deepen or liven up the discussion.
+Your response must be only the participant's name. Do not include any other words.`;
+
+    const userPrompt = `# Conversation History
+${historyText}
+
+# Participant List
+${personaNames}
+
+Who should speak next:`;
+
+    const nextSpeaker = await callGemini(systemPrompt, userPrompt, { model: discussionModel });
+    const foundPersona = personas.find(p => nextSpeaker.includes(p.name));
+    return foundPersona ? foundPersona.name : nextSpeaker;
+}
+
+async function generateResponse(persona, length, referenceCount) {
+    const relevantPosts = currentThread.posts.slice(-referenceCount);
+    const historyText = relevantPosts.map(p => `${p.author} (ID:${p.uid}): ${p.content}`).join('\n\n');
+
+    const systemPrompt = persona.prompt;
+    
+    const lengthInstruction = `返信は日本語で、${length}文字以内でお願いします。`;
+
+    const userPrompt = `# これまでの会話履歴
+${historyText}
+
+# あなたの指示
+上記の会話履歴を踏まえ、あなたの役割 (${persona.emoji} ${persona.name} ID:${persona.uid}) になりきって、次の発言をしてください。発言は自然で、会話の流れに沿ったものにしてください。${lengthInstruction}
+
+あなたの発言:`;
+
+    return await callGemini(systemPrompt, userPrompt, { model: discussionModel });
+}
+
+// --- UI Rendering ---
+function renderThread(title) {
+    const welcomeMsgElement = document.getElementById('welcomeMessage');
+    if (welcomeMsgElement) {
+       welcomeMsgElement.remove();
+    }
+    threadContainer.innerHTML = '';
+    
+    const titleElement = document.createElement('h2');
+    titleElement.className = "text-2xl font-semibold";
+    titleElement.textContent = title;
+    
+    threadHeader.innerHTML = ''; // Clear header
+    threadHeader.appendChild(titleElement);
+    
+    if (currentThread.sources && currentThread.sources.length > 0) {
+        const sourceContainer = document.createElement('div');
+        sourceContainer.className = 'text-sm text-gray-600 mt-1';
+        let sourceLinks = 'ソース: ';
+        currentThread.sources.forEach((url, index) => {
+            sourceLinks += `<a href="${url}" target="_blank" class="text-blue-600 hover:underline">${new URL(url).hostname}</a>`;
+            if (index < currentThread.sources.length - 1) {
+                sourceLinks += ', ';
+            }
+        });
+        sourceContainer.innerHTML = sourceLinks;
+        threadHeader.appendChild(sourceContainer);
+    }
+
+
+    currentThread.posts.forEach((post, index) => {
+        const authorIndex = post.author === 'あなた' ? -2 : personas.findIndex(p => post.author.includes(p.name));
+        addPostToThread(post.author, post.content, authorIndex, post.timestamp, index + 1, post.uid);
+    });
+}
+
+function addPostToThread(author, content, authorIndex, timestamp, postNumber, uid) {
+    if (!postNumber) {
+        postNumber = currentThread.posts.length;
+    }
+
+    const postElement = document.createElement('div');
+    postElement.className = "thread-post py-2";
+
+    const formattedTimestamp = new Date(timestamp).toLocaleString('ja-JP', {
+        year: 'numeric', month: '2-digit', day: '2-digit', 
+        weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
+    let authorHtml = `<span class="post-author">${author}</span>`;
+    if(authorIndex === -2){ // User
+        authorHtml = `<span class="font-bold text-blue-700">${author}</span>`;
+    } 
+
+    postElement.innerHTML = `
+        <div class="post-header text-sm">
+            ${postNumber} 名前：${authorHtml}：${formattedTimestamp} ID:${uid}
+        </div>
+        <div class="post-content mt-1">
+            ${content.replace(/\n/g, '<br>')}
+        </div>
+    `;
+    threadContainer.appendChild(postElement);
+    postElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+// --- Generation Controls UI ---
+function showGenerationControls() {
+    generationControls.classList.remove('hidden');
+    generationControls.classList.add('flex');
+    pauseResumeBtn.textContent = '一時停止';
+    stopBtn.classList.remove('hidden');
+    generationStatus.classList.remove('hidden');
+    generationStatus.classList.add('flex');
+    pausedControls.classList.add('hidden');
+    exportContainer.classList.remove('hidden');
+
+}
+
+function updateControlsForFinishedState() {
+    generationStatus.classList.add('hidden');
+    pausedControls.classList.remove('hidden');
+    pausedControls.classList.add('flex');
+    continueMaxResponsesInput.value = maxResponses;
+    pauseResumeBtn.textContent = '再開';
+    stopBtn.classList.add('hidden');
+}
+
+function updateControlsForPauseState() {
+    pauseResumeBtn.textContent = '再開';
+    generationStatus.classList.add('hidden');
+    pausedControls.classList.remove('hidden');
+    pausedControls.classList.add('flex');
+    continueMaxResponsesInput.value = maxResponses;
+}
+
+function updateGenerationStatus() {
+    generationStatusText.textContent = `AIがレスを生成中... (${responseCount + 1}/${maxResponses})`;
+}
+
+function handlePauseResume() {
+    if (isFinished) {
+        const newMax = parseInt(continueMaxResponsesInput.value, 10);
+        if (isNaN(newMax) || newMax <= responseCount) {
+            alert('有効なレス停止数を入力してください。現在のレス数より大きい必要があります。');
+            return;
+        }
+        maxResponses = newMax;
+        isGenerating = true;
+        isFinished = false;
+        isPaused = false;
+        showGenerationControls();
+        generationLoop();
+    } else {
+        isPaused = !isPaused;
+        if (isPaused) {
+            updateControlsForPauseState();
+        } else {
+            const newMax = parseInt(continueMaxResponsesInput.value, 10);
+            if (isNaN(newMax) || newMax < responseCount) {
+                alert('有効なレス停止数を入力してください。現在のレス数より大きい必要があります。');
+                isPaused = true; // Stay paused
+                return;
+            }
+            maxResponses = newMax;
+            pauseResumeBtn.textContent = '一時停止';
+            generationStatus.classList.remove('hidden');
+            generationStatus.classList.add('flex');
+            pausedControls.classList.add('hidden');
+        }
+    }
+}
+
+function handleStop() {
+    isGenerating = false;
+    isPaused = false; // Ensure loop continues to exit condition
+}
+
+
+// --- Utility Functions ---
+function downloadThreadAsJSON() {
+    if (!currentThread) {
+        alert("ダウンロードするスレッドがありません。");
+        return;
+    }
+    const jsonString = JSON.stringify(currentThread, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'thread.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function downloadThreadAsImage() {
+    const button = document.getElementById('downloadImageBtn');
+    if (!currentThread) {
+        alert("保存するスレッドがありません。");
+        return;
+    }
+    
+    button.textContent = '画像を生成中...';
+    button.disabled = true;
+
+    try {
+        const canvas = await html2canvas(document.getElementById('threadParent'), {
+            backgroundColor: '#F0E0D6',
+            useCORS: true 
+        });
+        const imageURL = canvas.toDataURL('image/png');
+        
+        const a = document.createElement('a');
+        a.href = imageURL;
+        a.download = 'thread.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+    } catch (error) {
+        console.error("画像の生成に失敗しました:", error);
+        alert("画像の生成に失敗しました。コンソールを確認してください。");
+    } finally {
+        button.textContent = '画像として保存';
+        button.disabled = false;
+    }
+}
+
+
+// Add a simple CSS animation for new posts
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+`;
+document.head.appendChild(style);
+
+// --- Event Listeners ---
+addPersonaBtn.addEventListener('click', addPersona);
+startThreadBtn.addEventListener('click', startDiscussion);
+openMenuBtn.addEventListener('click', openMenu);
+closeMenuBtn.addEventListener('click', closeMenu);
+menuBackdrop.addEventListener('click', closeMenu);
+// Edit Modal Listeners
+closeEditModalBtn.addEventListener('click', closeEditModal);
+cancelEditBtn.addEventListener('click', closeEditModal);
+savePersonaBtn.addEventListener('click', savePersona);
+// Create Thread Modal Listeners
+openCreateThreadModalBtn.addEventListener('click', openCreateThreadModal);
+closeCreateThreadModalBtn.addEventListener('click', closeCreateThreadModal);
+cancelCreateThreadBtn.addEventListener('click', closeCreateThreadModal);
+addUrlBtn.addEventListener('click', addUrlToList);
+generateFromSourceBtn.addEventListener('click', handleGenerateFromSource);
+tabUrl.addEventListener('click', () => switchTab('url'));
+tabText.addEventListener('click', () => switchTab('text'));
+// Generation Control Listeners
+pauseResumeBtn.addEventListener('click', handlePauseResume);
+stopBtn.addEventListener('click', handleStop);
+// Header listeners
+exportBtn.addEventListener('click', () => exportDropdown.classList.toggle('hidden'));
+downloadJsonBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    downloadThreadAsJSON();
+    exportDropdown.classList.add('hidden');
+});
+downloadImageBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    downloadThreadAsImage();
+    exportDropdown.classList.add('hidden');
+});
+window.addEventListener('click', (e) => {
+    if (!exportContainer.contains(e.target)) {
+        exportDropdown.classList.add('hidden');
+    }
+});
+
+
+// --- Initial Render ---
+renderPersonas();
+
+</script>
+</body>
+</html>
+
+
