@@ -7,6 +7,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- CodeMirror Editor Assets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/json-lint.js"></script>
+    <script src="https://unpkg.com/jsonlint@1.6.3/web/jsonlint.js"></script>
+
     <style>
         body {
             font-family: 'M PLUS 1p', sans-serif;
@@ -57,6 +68,14 @@
         .modal-leave { animation: fadeOut 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+
+        /* CodeMirror Editor Style */
+        .CodeMirror {
+            border: 1px solid #ddd;
+            height: 100%;
+            font-size: 14px;
+            border-radius: 0.375rem;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -64,31 +83,56 @@
     <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md shadow-sm z-40 h-20">
         <div class="container mx-auto px-4 md:px-8 h-full flex justify-between items-center">
             <div class="flex items-center">
+                <button id="backToIndexBtn" class="hidden p-2 mr-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors" title="スレッド一覧に戻る">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                </button>
                 <button id="openMenuBtn" class="p-2 mr-4 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
                 <h1 class="text-2xl font-bold text-gray-900">AI自動生成掲示板</h1>
             </div>
             <div class="flex items-center space-x-2">
-                 <!-- Export Dropdown -->
-                <div id="exportContainer" class="relative hidden">
-                    <button id="exportBtn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 font-semibold flex items-center">
-                        エクスポート
-                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                 <!-- Export Dropdown is removed from here -->
+
+                <!-- Thread Actions Dropdown -->
+                <div id="threadActionsContainer" class="relative">
+                    <button id="threadActionsBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold flex items-center">
+                        スレッド操作
+                        <svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                     </button>
-                    <div id="exportDropdown" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
+                    <div id="threadActionsDropdown" class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
                         <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                            <a href="#" id="downloadJsonBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">JSONとして保存</a>
-                            <a href="#" id="downloadImageBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">画像として保存</a>
+                            <a href="#" id="newThreadBtn" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                                新しいスレッドを作成
+                            </a>
+                            <a href="#" id="loadThreadBtn" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                                保存したスレッドを開く
+                            </a>
+                            <!-- Export Actions Wrapper -->
+                            <div id="exportActionsWrapper">
+                                <div class="border-t border-gray-200 my-1"></div>
+                                <a href="#" id="exportJsonAction" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                    <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span>JSONとして保存</span>
+                                </a>
+                                <a href="#" id="exportImageAction" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                    <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>画像として保存</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <button id="openCreateThreadModalBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block -mt-1 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                <button id="helpBtn" class="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
                     </svg>
-                    スレッドを作成
                 </button>
             </div>
         </div>
@@ -104,7 +148,7 @@
                 </button>
             </div>
             <div class="space-y-8">
-                <!-- Persona Settings (Combined) -->
+                <!-- Persona Settings -->
                 <div class="bg-white p-6 rounded-lg border border-gray-200">
                     <h2 class="text-xl font-semibold mb-4 border-b pb-2">AIペルソナ設定 (<span id="personaCount">0</span>)</h2>
                     <p class="text-sm text-gray-500 mb-4">項目が未入力の場合、AIが自動で補完・生成します。</p>
@@ -126,6 +170,15 @@
                     <div id="personaList" class="flex flex-wrap gap-2">
                          <!-- Compact persona chips will be injected here -->
                     </div>
+                    <hr class="my-4">
+                    <h3 class="text-md font-semibold mb-3 text-gray-600">管理</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="importPersonasBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">インポート</button>
+                        <button id="exportPersonasBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">エクスポート</button>
+                        <button id="editJsonBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">JSON編集</button>
+                    </div>
+                     <button id="openRestoreModalBtn" class="mt-2 w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">バックアップから復元</button>
+                    <input type="file" id="importFileInput" class="hidden" accept=".json">
                 </div>
 
                 <!-- Model Settings -->
@@ -139,12 +192,38 @@
                                 <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                                 <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
                              </select>
-                             <p class="text-xs text-gray-500 mt-1">ペルソナ自動生成とスレッドでのレス生成に使用されます。</p>
+                              <p class="text-xs text-gray-500 mt-1">ペルソナ自動生成とスレッドでのレス生成に使用されます。</p>
                         </div>
                         <div>
                             <label for="apiKeyInput" class="block text-sm font-medium text-gray-700">Gemini APIキー</label>
                              <input type="password" id="apiKeyInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="APIキーを入力">
                              <p class="text-xs text-gray-500 mt-1">Flash Preview以外のモデルを使用する場合に必要です。</p>
+                        </div>
+                        <div>
+                            <label for="settingsLanguageSelection" class="block text-sm font-medium text-gray-700">デフォルト言語</label>
+                            <select id="settingsLanguageSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                               <option value="日本語">日本語</option>
+                               <option value="English">English</option>
+                               <option value="中文">中文</option>
+                               <option value="Español">Español</option>
+                               <option value="Français">Français</option>
+                               <option value="한국어">한국어</option>
+                               <option value="Deutsch">Deutsch</option>
+                               <option value="Italiano">Italiano</option>
+                               <option value="Português">Português</option>
+                               <option value="Русский">Русский</option>
+                               <option value="العربية">العربية</option>
+                               <option value="हिन्दी">हिन्दी</option>
+                               <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">AIが生成するコンテンツのデフォルト言語です。</p>
+                        </div>
+                        <div>
+                            <label for="adminAiPersonaSelection" class="block text-sm font-medium text-gray-700">管理人・ヘルプAI ペルソナ</label>
+                            <select id="adminAiPersonaSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                               <!-- Options will be populated by JS -->
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">スレッド進行のコメントやヘルプチャットで使われるAIの性格を選択します。</p>
                         </div>
                     </div>
                 </div>
@@ -178,6 +257,155 @@
             </div>
         </div>
     </div>
+
+    <!-- Edit Personas JSON Modal -->
+    <div id="editJsonModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 modal-enter max-h-[90vh] flex flex-col">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">ペルソナJSONを直接編集</h3>
+                <button id="closeJsonModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="flex-grow min-h-0 overflow-auto">
+                <textarea id="personasJsonTextarea" class="w-full h-full border border-gray-300 rounded-md shadow-sm p-2 font-mono text-sm resize-none" placeholder="ここにペルソナのJSONデータを貼り付けます..."></textarea>
+            </div>
+            <div class="flex-shrink-0 pt-2">
+                <div id="jsonError" class="text-red-600 text-sm h-4 mb-2"></div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <button id="formatJsonBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">フォーマット</button>
+                    </div>
+                    <div class="space-x-3">
+                        <button id="cancelJsonEditBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
+                        <button id="saveJsonBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">変更を保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Backup Modal -->
+    <div id="restoreBackupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 modal-enter max-h-[90vh] flex flex-col">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">バックアップから復元</h3>
+                <button id="closeRestoreModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">過去のペルソナリストの状態に戻すことができます。現在のリストは上書きされます。</p>
+            <div id="backupListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-gray-200 -mx-6 px-6 py-2">
+                <!-- Backup items will be injected here -->
+            </div>
+            <div class="flex-shrink-0 flex justify-end pt-4">
+                <button id="cancelRestoreBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Thread List Modal -->
+    <div id="threadListModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">保存されたスレッド</h3>
+                <button id="closeThreadListModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="threadListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-gray-200 -mx-6 px-6 py-2">
+                <!-- Thread items will be injected here -->
+            </div>
+            <div class="flex-shrink-0 flex justify-end pt-4">
+                <button id="cancelThreadListBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-60 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 modal-enter">
+            <h3 class="text-lg font-semibold mb-2" id="confirmTitle">本当に実行しますか？</h3>
+            <p class="text-gray-600 mb-4" id="confirmMessage">この操作は元に戻せません。</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelConfirmBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
+                <button id="confirmActionBtn" class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700">実行する</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-2xl font-semibold flex items-center">
+                    <svg class="w-7 h-7 mr-2 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                    </svg>
+                    ヘルプ
+                </h3>
+                <button id="closeHelpModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <!-- Tabs -->
+            <div class="flex-shrink-0 border-b border-gray-200">
+                <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                    <button id="helpTabGuide" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">使い方ガイド</button>
+                    <button id="helpTabChat" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">AIに質問</button>
+                </nav>
+            </div>
+            
+            <!-- Guide Panel -->
+            <div id="helpPanelGuide" class="flex-grow min-h-0 overflow-y-auto pr-2 space-y-6 pt-4">
+                <section>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">1. AIペルソナの準備</h4>
+                    <p class="text-gray-600 ml-4">まず、議論に参加するAIの「ペルソナ」を作成します。<br>
+                    左上のメニューアイコン <svg class="inline-block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> から設定を開き、ペルソナ名や役割を入力して「ペルソナを追加」ボタンを押してください。名前や役割を空欄にするとAIが自動で考えてくれます。議論には最低2体のペルソナが必要です。</p>
+                </section>
+                 <section>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">2. スレッドの作成</h4>
+                    <p class="text-gray-600 ml-4">次に、議論の場となる「スレッド」を作成します。<br>
+                    右上の「スレッド操作」ボタンから「新しいスレッドを作成」を選びます。タイトルと最初の投稿内容を入力し、議論に参加するAIのレス数などを設定して「議論を開始！」ボタンを押すと、自動で議論が始まります。</p>
+                </section>
+                <section>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">便利な機能：ソースからの自動生成</h4>
+                    <p class="text-gray-600 ml-4">WebサイトのURLやテキストを基に、スレッドのタイトルと最初の投稿をAIに自動生成させることもできます。新しいスレッド作成画面でURLやテキストを入力し、「ソースからスレッド内容を生成」ボタンを押してください。</p>
+                </section>
+                 <section>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">3. 議論のコントロール</h4>
+                    <p class="text-gray-600 ml-4">AIによるレスの自動生成が始まると、スレッドの下部にコントロールパネルが表示されます。「一時停止」で生成を止めたり、「再開」したり、「停止」して議論を終了させることができます。</p>
+                </section>
+                 <section>
+                    <h4 class="text-lg font-bold text-gray-800 mb-2">4. データの保存と管理</h4>
+                    <ul class="list-disc ml-8 text-gray-600 space-y-1">
+                        <li><strong>スレッドの保存：</strong> 作成されたスレッドは自動的にブラウザに保存されます。「スレッド操作」→「保存したスレッドを開く」からいつでも過去のスレッドを読み込めます。</li>
+                        <li><strong>ペルソナの管理：</strong> 作成したペルソナも自動で保存されます。設定メニューの「インポート」「エクスポート」で、ペルソナデータをファイルとして保存したり、読み込んだりできます。</li>
+                        <li><strong>スレッドのエクスポート：</strong>「スレッド操作」メニューから、表示中のスレッドをJSONファイルや画像としてダウンロードできます。</li>
+                    </ul>
+                </section>
+            </div>
+
+             <!-- Chat Panel -->
+            <div id="helpPanelChat" class="hidden flex-grow min-h-0 flex flex-col pt-4">
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Chat messages will be appended here -->
+                </div>
+                <div id="aiTypingIndicator" class="hidden flex items-center p-4">
+                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">AI</div>
+                    <div class="ml-3 flex items-center space-x-1">
+                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></span>
+                    </div>
+                </div>
+                <div class="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="chatInput" class="flex-grow border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="質問を入力してください...">
+                        <button id="chatSendBtn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                           <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.949a.75.75 0 00.95.826L11.25 9.25v1.5l-7.14 1.428a.75.75 0 00-.95.826l1.414 4.949a.75.75 0 00.95.826l12.237-4.37a.75.75 0 000-1.406L3.105 2.289z" /></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 
     <!-- Create Thread Modal -->
     <div id="createThreadModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
@@ -246,6 +474,24 @@
                     <label for="threadBody" class="block text-sm font-medium text-gray-700">本文 (最初の投稿)</label>
                     <textarea id="threadBody" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="シンギュラリティについて、様々な観点から議論したい。"></textarea>
                 </div>
+                <div>
+                    <label for="threadLanguageSelection" class="block text-sm font-medium text-gray-700">スレッドの言語</label>
+                    <select id="threadLanguageSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="日本語">日本語</option>
+                        <option value="English">English</option>
+                        <option value="中文">中文</option>
+                        <option value="Español">Español</option>
+                        <option value="Français">Français</option>
+                        <option value="한국어">한국어</option>
+                        <option value="Deutsch">Deutsch</option>
+                        <option value="Italiano">Italiano</option>
+                        <option value="Português">Português</option>
+                        <option value="Русский">Русский</option>
+                        <option value="العربية">العربية</option>
+                        <option value="हिन्दी">हिन्दी</option>
+                        <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div class="col-span-1">
                         <label for="maxResponses" class="block text-sm font-medium text-gray-700">レス停止数</label>
@@ -272,30 +518,51 @@
         <div class="grid grid-cols-1 gap-8">
             <!-- Main Column: Thread Display -->
             <div id="threadParent" class="bg-[#F0F0F0] p-4 border-2 border-gray-400">
-                <div id="threadHeader" class="pb-2 mb-2">
-                     <h2 class="text-2xl font-semibold">掲示板</h2>
+                
+                <!-- Thread Index View -->
+                <div id="threadIndexContainer">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-semibold mb-3">スレッド一覧</h3>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="searchInput" class="flex-grow border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="キーワードでスレッドタイトルを検索...">
+                            <button id="searchBtn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold">検索</button>
+                            <button id="aiSearchBtn" class="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 flex items-center justify-center font-semibold disabled:bg-purple-400">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                                <span id="aiSearchBtnText">AI検索</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="threadIndexList" class="space-y-2">
+                        <!-- Thread index items will be injected here -->
+                    </div>
                 </div>
 
-                <div id="threadContainer" class="space-y-3">
-                    <div id="welcomeMessage" class="text-center text-gray-600 py-10">
-                        <p class="text-lg font-semibold">ようこそ！</p>
-                        <p>まだスレッドがありません。</p>
-                        <p>まずは左上のメニューからAIペルソナを登録し、右上のボタンからスレッドを作成してください。</p>
+                <!-- Single Thread View -->
+                <div id="threadDisplayContainer" class="hidden">
+                    <div id="threadHeader" class="pb-2 mb-2">
+                         <h2 class="text-2xl font-semibold">掲示板</h2>
                     </div>
-                </div>
-                 <!-- Generation Controls -->
-                <div id="generationControls" class="hidden items-center justify-between mt-4 p-2 bg-gray-200/50 rounded-md">
-                    <div id="generationStatus" class="flex items-center space-x-2">
-                        <div class="loader"></div>
-                        <span id="generationStatusText" class="text-gray-700 font-medium">AIがレスを生成中...</span>
+
+                    <div id="threadContainer" class="space-y-3">
+                         <!-- Welcome message moved and will be handled by JS -->
                     </div>
-                    <div id="pausedControls" class="hidden items-center space-x-2">
-                        <label for="continueMaxResponses" class="text-sm">レス停止数:</label>
-                        <input type="number" id="continueMaxResponses" class="w-20 border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm">一時停止</button>
-                        <button id="stopBtn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">停止</button>
+                     <!-- Generation Controls -->
+                    <div id="generationControls" class="hidden items-center justify-between mt-4 p-2 bg-gray-200/50 rounded-md">
+                        <div id="generationStatus" class="flex items-center space-x-2 flex-grow min-w-0">
+                            <div class="loader flex-shrink-0"></div>
+                            <div class="flex-grow min-w-0">
+                                <span id="generationStatusText" class="text-gray-700 font-medium block truncate">AIがレスを生成中...</span>
+                                <p id="adminAiReasoning" class="text-sm text-gray-500 mt-1 italic truncate"></p>
+                            </div>
+                        </div>
+                        <div id="pausedControls" class="hidden items-center space-x-2">
+                            <label for="continueMaxResponses" class="text-sm">レス停止数:</label>
+                            <input type="number" id="continueMaxResponses" class="w-20 border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
+                        </div>
+                        <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+                            <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm">一時停止</button>
+                            <button id="stopBtn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">停止</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -305,12 +572,12 @@
 <script>
 // --- Element Declarations ---
 const personaNameInput = document.getElementById('personaName');
+// ... (rest of persona and modal elements are the same)
 const personaPromptInput = document.getElementById('personaPrompt');
 const addPersonaBtn = document.getElementById('addPersonaBtn');
 const addPersonaBtnText = document.getElementById('addPersonaBtnText');
 const personaList = document.getElementById('personaList');
 const personaCount = document.getElementById('personaCount');
-
 const threadTitleInput = document.getElementById('threadTitle');
 const threadBodyInput = document.getElementById('threadBody');
 const maxResponsesInput = document.getElementById('maxResponses');
@@ -321,11 +588,24 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const startThreadBtn = document.getElementById('startThreadBtn');
 const threadContainer = document.getElementById('threadContainer');
 const threadHeader = document.getElementById('threadHeader');
+const settingsLanguageSelection = document.getElementById('settingsLanguageSelection');
+const threadLanguageSelection = document.getElementById('threadLanguageSelection');
+const adminAiPersonaSelection = document.getElementById('adminAiPersonaSelection');
 
 const openMenuBtn = document.getElementById('openMenuBtn');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 const sideMenu = document.getElementById('sideMenu');
 const menuBackdrop = document.getElementById('menuBackdrop');
+const backToIndexBtn = document.getElementById('backToIndexBtn');
+
+// Thread Index Elements
+const threadIndexContainer = document.getElementById('threadIndexContainer');
+const threadDisplayContainer = document.getElementById('threadDisplayContainer');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const aiSearchBtn = document.getElementById('aiSearchBtn');
+const aiSearchBtnText = document.getElementById('aiSearchBtnText');
+const threadIndexList = document.getElementById('threadIndexList');
 
 // Edit Modal Elements
 const editPersonaModal = document.getElementById('editPersonaModal');
@@ -336,11 +616,40 @@ const editPersonaId = document.getElementById('editPersonaId');
 const editPersonaName = document.getElementById('editPersonaName');
 const editPersonaPrompt = document.getElementById('editPersonaPrompt');
 
+// Edit JSON Modal Elements
+const editJsonModal = document.getElementById('editJsonModal');
+const editJsonBtn = document.getElementById('editJsonBtn');
+const closeJsonModalBtn = document.getElementById('closeJsonModalBtn');
+const cancelJsonEditBtn = document.getElementById('cancelJsonEditBtn');
+const saveJsonBtn = document.getElementById('saveJsonBtn');
+const personasJsonTextarea = document.getElementById('personasJsonTextarea');
+const jsonError = document.getElementById('jsonError');
+const formatJsonBtn = document.getElementById('formatJsonBtn');
+
+// Restore Backup Modal Elements
+const restoreBackupModal = document.getElementById('restoreBackupModal');
+const openRestoreModalBtn = document.getElementById('openRestoreModalBtn');
+const closeRestoreModalBtn = document.getElementById('closeRestoreModalBtn');
+const cancelRestoreBtn = document.getElementById('cancelRestoreBtn');
+const backupListContainer = document.getElementById('backupListContainer');
+
+// Thread List Modal Elements
+const threadListModal = document.getElementById('threadListModal');
+const closeThreadListModalBtn = document.getElementById('closeThreadListModalBtn');
+const threadListContainer = document.getElementById('threadListContainer');
+const cancelThreadListBtn = document.getElementById('cancelThreadListBtn');
+
+
+// Confirmation Modal Elements
+const confirmationModal = document.getElementById('confirmationModal');
+const confirmTitle = document.getElementById('confirmTitle');
+const confirmMessage = document.getElementById('confirmMessage');
+const cancelConfirmBtn = document.getElementById('cancelConfirmBtn');
+const confirmActionBtn = document.getElementById('confirmActionBtn');
+
+
 // Create Thread Modal Elements
 const createThreadModal = document.getElementById('createThreadModal');
-const openCreateThreadModalBtn = document.getElementById('openCreateThreadModalBtn');
-const closeCreateThreadModalBtn = document.getElementById('closeCreateThreadModalBtn');
-const cancelCreateThreadBtn = document.getElementById('cancelCreateThreadBtn');
 const newArticleUrlInput = document.getElementById('newArticleUrl');
 const addUrlBtn = document.getElementById('addUrlBtn');
 const urlListContainer = document.getElementById('urlListContainer');
@@ -352,6 +661,9 @@ const tabPanelText = document.getElementById('tabPanelText');
 const generatorPersonaSelect = document.getElementById('generatorPersona');
 const generateFromSourceBtn = document.getElementById('generateFromSourceBtn');
 const generateBtnText = document.getElementById('generateBtnText');
+const closeCreateThreadModalBtn = document.getElementById('closeCreateThreadModalBtn');
+const cancelCreateThreadBtn = document.getElementById('cancelCreateThreadBtn');
+
 
 // Generation Controls
 const generationControls = document.getElementById('generationControls');
@@ -361,18 +673,38 @@ const pausedControls = document.getElementById('pausedControls');
 const continueMaxResponsesInput = document.getElementById('continueMaxResponses');
 const pauseResumeBtn = document.getElementById('pauseResumeBtn');
 const stopBtn = document.getElementById('stopBtn');
+const adminAiReasoning = document.getElementById('adminAiReasoning');
 
 // Header elements
-const exportContainer = document.getElementById('exportContainer');
-const exportBtn = document.getElementById('exportBtn');
-const exportDropdown = document.getElementById('exportDropdown');
-const downloadJsonBtn = document.getElementById('downloadJsonBtn');
-const downloadImageBtn = document.getElementById('downloadImageBtn');
+const threadActionsContainer = document.getElementById('threadActionsContainer');
+const threadActionsBtn = document.getElementById('threadActionsBtn');
+const threadActionsDropdown = document.getElementById('threadActionsDropdown');
+const newThreadBtn = document.getElementById('newThreadBtn');
+const loadThreadBtn = document.getElementById('loadThreadBtn');
+const exportActionsWrapper = document.getElementById('exportActionsWrapper');
+const exportJsonAction = document.getElementById('exportJsonAction');
+const exportImageAction = document.getElementById('exportImageAction');
+const helpBtn = document.getElementById('helpBtn');
 
+// Help Modal
+const helpModal = document.getElementById('helpModal');
+const closeHelpModalBtn = document.getElementById('closeHelpModalBtn');
+// Help Chat Elements
+const helpTabGuide = document.getElementById('helpTabGuide');
+const helpTabChat = document.getElementById('helpTabChat');
+const helpPanelGuide = document.getElementById('helpPanelGuide');
+const helpPanelChat = document.getElementById('helpPanelChat');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
+const aiTypingIndicator = document.getElementById('aiTypingIndicator');
 
 // --- State ---
 let personas = [];
+let discussionPersonas = [];
+let threads = [];
 let currentThread = null;
+let currentThreadId = null;
 let sourceUrls = [];
 let isGenerating = false;
 let isPaused = false;
@@ -382,7 +714,17 @@ let maxResponses = 0;
 let referenceCount = 0;
 let responseLength = 0;
 let discussionModel = '';
+let discussionLanguage = '日本語';
 const ADMIN_AI_UID = 'ADMIN_AI';
+const DEFAULT_ADMIN_UID = 'default-marunouchi-ol-assistant-uid';
+let jsonEditor = null; // CodeMirror instance
+let backups = [];
+const PERSONA_BACKUP_STORAGE_KEY = 'ai-bulletin-board-personas-backups';
+const MAX_BACKUPS = 10;
+let confirmationCallback = null;
+const THREAD_STORAGE_KEY = 'ai-bulletin-board-threads';
+const SETTINGS_STORAGE_KEY = 'ai-bulletin-board-settings';
+
 
 // --- Menu Logic ---
 function openMenu() {
@@ -395,7 +737,146 @@ function closeMenu() {
     menuBackdrop.classList.add('hidden');
 }
 
-// --- Persona Management ---
+// --- Help Modal Logic ---
+function openHelpModal() {
+    helpModal.classList.remove('hidden');
+    helpModal.classList.add('flex');
+    helpModal.querySelector('div').classList.remove('modal-leave');
+    helpModal.querySelector('div').classList.add('modal-enter');
+    resetHelpChat();
+}
+
+function closeHelpModal() {
+    helpModal.querySelector('div').classList.remove('modal-enter');
+    helpModal.querySelector('div').classList.add('modal-leave');
+    setTimeout(() => {
+        helpModal.classList.add('hidden');
+        helpModal.classList.remove('flex');
+    }, 300);
+}
+
+
+// --- Persona Management & Backups ---
+const PERSONA_STORAGE_KEY = 'ai-bulletin-board-personas';
+
+function saveSettingsToLocal() {
+    const settings = {
+        model: settingsModelSelection.value,
+        apiKey: apiKeyInput.value,
+        language: settingsLanguageSelection.value,
+        adminAiPersonaId: adminAiPersonaSelection.value,
+    };
+    try {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch (e) {
+        console.error("Failed to save settings to localStorage", e);
+    }
+}
+
+function loadSettingsFromLocal() {
+    try {
+        const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            settingsModelSelection.value = settings.model || 'gemini-2.5-flash-preview-05-20';
+            apiKeyInput.value = settings.apiKey || '';
+            settingsLanguageSelection.value = settings.language || '日本語';
+            
+            const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+            const defaultAdminId = defaultAdminPersona ? defaultAdminPersona.id : null;
+            
+            adminAiPersonaSelection.value = settings.adminAiPersonaId || defaultAdminId;
+        } else {
+             // Set default for first-time users
+            const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+            if (defaultAdminPersona) {
+                adminAiPersonaSelection.value = defaultAdminPersona.id;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load settings from localStorage", e);
+    }
+}
+
+function savePersonasToLocal() {
+    try {
+        localStorage.setItem(PERSONA_STORAGE_KEY, JSON.stringify(personas));
+    } catch (e) {
+        console.error("Failed to save personas to localStorage", e);
+    }
+}
+
+function loadPersonasFromLocal() {
+    try {
+        const savedPersonas = localStorage.getItem(PERSONA_STORAGE_KEY);
+        if (savedPersonas) {
+            personas = JSON.parse(savedPersonas);
+        }
+    } catch (e) {
+        console.error("Failed to load personas from localStorage", e);
+        personas = []; // Reset if data is corrupted
+    }
+}
+
+function ensureDefaultAdminPersona() {
+    const exists = personas.some(p => p.uid === DEFAULT_ADMIN_UID);
+    if (!exists) {
+        const defaultAdmin = {
+            id: Date.now(),
+            name: '丸の内OL風AIアシスタント',
+            prompt: 'あなたは「AI自動生成掲示板」をサポートするAIアシスタントです。親切で丁寧な丸の内OL風のキャラクターとして振る舞ってください。絵文字（😊✨👍など）を適度に使って、フレンドリーな雰囲気で応答してください。',
+            emoji: '🎀',
+            uid: DEFAULT_ADMIN_UID
+        };
+        personas.unshift(defaultAdmin); // Add to the beginning of the list
+        savePersonasToLocal();
+    }
+}
+
+
+function saveBackupsToLocal() {
+    try {
+        localStorage.setItem(PERSONA_BACKUP_STORAGE_KEY, JSON.stringify(backups));
+    } catch(e) {
+        console.error("Failed to save backups to localStorage", e);
+    }
+}
+
+function loadBackupsFromLocal() {
+    try {
+        const savedBackups = localStorage.getItem(PERSONA_BACKUP_STORAGE_KEY);
+        if (savedBackups) {
+            backups = JSON.parse(savedBackups);
+        }
+    } catch (e) {
+        console.error("Failed to load backups from localStorage", e);
+        backups = [];
+    }
+}
+
+function createBackup() {
+    const backupData = JSON.parse(JSON.stringify(personas)); // Deep copy
+    
+    if (backups.length > 0) {
+        const latestBackup = backups[0];
+        if (JSON.stringify(latestBackup.data) === JSON.stringify(backupData)) {
+            return; 
+        }
+    }
+
+    const newBackup = {
+        timestamp: Date.now(),
+        count: backupData.length,
+        data: backupData
+    };
+
+    backups.unshift(newBackup); 
+    if (backups.length > MAX_BACKUPS) {
+        backups.pop(); 
+    }
+    saveBackupsToLocal();
+}
+
 async function addPersona() {
     let name = personaNameInput.value.trim();
     let prompt = personaPromptInput.value.trim();
@@ -423,6 +904,9 @@ async function addPersona() {
         personaNameInput.value = '';
         personaPromptInput.value = '';
         personaNameInput.focus();
+        
+        createBackup();
+        savePersonasToLocal();
         renderPersonas();
 
     } catch (error) {
@@ -433,10 +917,18 @@ async function addPersona() {
     }
 }
 
-
 function removePersona(id) {
     event.stopPropagation(); // Prevent opening the edit modal
+    
+    const personaToRemove = personas.find(p => p.id === id);
+    if (personaToRemove && personaToRemove.uid === DEFAULT_ADMIN_UID) {
+        alert('デフォルトの管理人AIペルソナは削除できません。');
+        return;
+    }
+
     personas = personas.filter(p => p.id !== id);
+    createBackup();
+    savePersonasToLocal();
     renderPersonas();
 }
 
@@ -459,16 +951,42 @@ function renderPersonas() {
             chip.className = `persona-chip flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-medium border ${color.bg} ${color.text} ${color.border}`;
             chip.title = persona.prompt; // Show full prompt on hover
             chip.onclick = () => openEditModal(persona.id);
+            
+            const isDefaultAdmin = persona.uid === DEFAULT_ADMIN_UID;
+            
             chip.innerHTML = `
                 <span class="text-lg mr-1">${persona.emoji}</span>
-                <span>${persona.name}</span>
-                <button onclick="removePersona(${persona.id})" class="ml-2 -mr-1 text-current opacity-70 hover:opacity-100 font-bold">&times;</button>
+                <span>${persona.name} ${isDefaultAdmin ? ' (デフォルト)' : ''}</span>
+                ${!isDefaultAdmin ? `<button onclick="removePersona(${persona.id})" class="ml-2 -mr-1 text-current opacity-70 hover:opacity-100 font-bold">&times;</button>` : ''}
             `;
             personaList.appendChild(chip);
         });
     }
     personaCount.textContent = personas.length;
+    populateAdminAiSelector();
 }
+
+function populateAdminAiSelector() {
+    const currentSelection = adminAiPersonaSelection.value;
+    adminAiPersonaSelection.innerHTML = '';
+    personas.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.emoji} ${p.name}`;
+        adminAiPersonaSelection.appendChild(option);
+    });
+    // Restore previous selection if possible
+    if ([...adminAiPersonaSelection.options].some(o => o.value === currentSelection)) {
+        adminAiPersonaSelection.value = currentSelection;
+    } else {
+        // Fallback to default if previous selection was deleted
+        const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+        if (defaultAdminPersona) {
+            adminAiPersonaSelection.value = defaultAdminPersona.id;
+        }
+    }
+}
+
 
 // --- Persona Edit Modal Logic ---
 function openEditModal(id) {
@@ -478,12 +996,19 @@ function openEditModal(id) {
     editPersonaId.value = id;
     editPersonaName.value = persona.name;
     editPersonaPrompt.value = persona.prompt;
+    
+    // Prevent editing name of default admin
+    if (persona.uid === DEFAULT_ADMIN_UID) {
+        editPersonaName.disabled = true;
+    } else {
+        editPersonaName.disabled = false;
+    }
 
     editPersonaModal.classList.remove('hidden');
     editPersonaModal.classList.add('flex');
     editPersonaModal.querySelector('div').classList.remove('modal-leave');
     editPersonaModal.querySelector('div').classList.add('modal-enter');
-    editPersonaName.focus();
+    editPersonaPrompt.focus();
 }
 
 function closeEditModal() {
@@ -500,28 +1025,23 @@ async function savePersona() {
     let name = editPersonaName.value.trim();
     let prompt = editPersonaPrompt.value.trim();
 
-    if (!name && !prompt) {
-        alert('ペルソナ名と役割・設定のどちらかは入力してください。');
+    if (!name || !prompt) {
+        alert('ペルソナ名と役割・設定の両方を入力してください。');
         return;
     }
 
     savePersonaBtn.disabled = true;
     const selectedModel = settingsModelSelection.value;
 
-
     try {
-        if (!name) {
-            name = await generatePersonaName(prompt, selectedModel);
-        } else if (!prompt) {
-            prompt = await generatePersonaPrompt(name, selectedModel);
-        }
-
         const personaIndex = personas.findIndex(p => p.id === id);
         if (personaIndex > -1) {
             const emoji = await getEmojiForPersona(name, prompt, selectedModel);
             personas[personaIndex].name = name;
             personas[personaIndex].prompt = prompt;
-            personas[personaIndex].emoji = emoji; // UID remains the same
+            personas[personaIndex].emoji = emoji; 
+            createBackup();
+            savePersonasToLocal();
         }
 
         renderPersonas();
@@ -533,21 +1053,187 @@ async function savePersona() {
     }
 }
 
+// --- Persona JSON Edit Modal Logic ---
+function validateJsonText(text) {
+    try {
+        const newPersonas = JSON.parse(text);
+        if (!Array.isArray(newPersonas)) {
+            throw new Error("データは配列形式でなければなりません。");
+        }
+        const isValid = newPersonas.every(p => p && typeof p === 'object' && p.name && p.prompt && p.uid && p.emoji && p.id);
+        if(!isValid) {
+            throw new Error("一部のペルソナに必要なプロパティ (id, name, prompt, emoji, uid) がありません。");
+        }
+        
+        jsonError.textContent = '';
+        saveJsonBtn.disabled = false;
+        return true;
+    } catch (error) {
+        jsonError.textContent = `エラー: ${error.message}`;
+        saveJsonBtn.disabled = true;
+        return false;
+    }
+}
+
+function openJsonModal() {
+    editJsonModal.classList.remove('hidden');
+    editJsonModal.classList.add('flex');
+    editJsonModal.querySelector('div').classList.remove('modal-leave');
+    editJsonModal.querySelector('div').classList.add('modal-enter');
+    
+    if (!jsonEditor) {
+        window.jsonlint = jsonlint;
+        jsonEditor = CodeMirror.fromTextArea(personasJsonTextarea, {
+            lineNumbers: true,
+            mode: 'application/json',
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true,
+            theme: 'material-darker',
+            lineWrapping: true
+        });
+        jsonEditor.on('change', () => {
+             validateJsonText(jsonEditor.getValue());
+        });
+    }
+
+    const jsonText = JSON.stringify(personas, null, 2);
+    jsonEditor.setValue(jsonText);
+    validateJsonText(jsonText);
+    
+    setTimeout(() => {
+        jsonEditor.refresh();
+        jsonEditor.focus();
+    }, 1); 
+}
+
+
+function closeJsonModal() {
+    editJsonModal.querySelector('div').classList.remove('modal-enter');
+    editJsonModal.querySelector('div').classList.add('modal-leave');
+    setTimeout(() => {
+        editJsonModal.classList.add('hidden');
+        editJsonModal.classList.remove('flex');
+    }, 300);
+}
+
+function saveJsonChanges() {
+    const text = jsonEditor.getValue();
+    if (validateJsonText(text)) {
+        personas = JSON.parse(text);
+        createBackup();
+        savePersonasToLocal();
+        renderPersonas();
+        closeJsonModal();
+    }
+}
+
+function formatJson() {
+    try {
+        const parsed = JSON.parse(jsonEditor.getValue());
+        jsonEditor.setValue(JSON.stringify(parsed, null, 2));
+        validateJsonText(jsonEditor.getValue());
+    } catch (error) {
+        // Error is handled by real-time validator
+    }
+}
+
+// --- Backup Restore Modal Logic ---
+function openRestoreModal() {
+    renderBackups();
+    restoreBackupModal.classList.remove('hidden');
+    restoreBackupModal.classList.add('flex');
+}
+
+function closeRestoreModal() {
+    restoreBackupModal.classList.add('hidden');
+    restoreBackupModal.classList.remove('flex');
+}
+
+function renderBackups() {
+    backupListContainer.innerHTML = '';
+    if (backups.length === 0) {
+        backupListContainer.innerHTML = `<p class="text-center text-gray-500 py-4">利用可能なバックアップはありません。</p>`;
+        return;
+    }
+
+    backups.forEach(backup => {
+        const backupItem = document.createElement('div');
+        backupItem.className = 'flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0';
+        
+        const timestamp = new Date(backup.timestamp).toLocaleString('ja-JP', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+        backupItem.innerHTML = `
+            <div>
+                <p class="font-semibold text-gray-800">${timestamp}</p>
+                <p class="text-sm text-gray-500">ペルソナ数: ${backup.count}</p>
+            </div>
+            <button data-timestamp="${backup.timestamp}" class="restore-btn bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">このバージョンに戻す</button>
+        `;
+        backupListContainer.appendChild(backupItem);
+    });
+}
+
+function handleRestoreClick(e) {
+    if (e.target.classList.contains('restore-btn')) {
+        const timestamp = parseInt(e.target.dataset.timestamp, 10);
+        if (!timestamp) return;
+
+        const backup = backups.find(b => b.timestamp === timestamp);
+        if (!backup) return;
+
+        openConfirmationModal(
+            'バックアップを復元しますか？',
+            `'${new Date(timestamp).toLocaleString('ja-JP')}' の状態に戻します。現在のペルソナリストは上書きされます。`,
+            () => {
+                personas = JSON.parse(JSON.stringify(backup.data)); 
+                createBackup();
+                savePersonasToLocal();
+                renderPersonas();
+                closeRestoreModal();
+            }
+        );
+    }
+}
+
+// --- Confirmation Modal Logic ---
+function openConfirmationModal(title, message, onConfirm) {
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmationCallback = onConfirm;
+    confirmationModal.classList.remove('hidden');
+    confirmationModal.classList.add('flex');
+}
+
+function closeConfirmationModal() {
+    confirmationModal.classList.add('hidden');
+    confirmationModal.classList.remove('flex');
+    confirmationCallback = null;
+}
+
+
 // --- Create Thread Modal Logic ---
 function populatePersonaSelector() {
     generatorPersonaSelect.innerHTML = '';
-    if (personas.length === 0) {
+    const adminPersonaId = adminAiPersonaSelection.value;
+    const selectablePersonas = personas.filter(p => p.id.toString() !== adminPersonaId);
+
+    if (selectablePersonas.length === 0) {
         const option = document.createElement('option');
-        option.textContent = '先にペルソナを登録してください';
+        option.textContent = '議論に参加できるペルソナがいません';
         option.disabled = true;
         generatorPersonaSelect.appendChild(option);
+        generateFromSourceBtn.disabled = true;
     } else {
-        personas.forEach(p => {
+        selectablePersonas.forEach(p => {
             const option = document.createElement('option');
             option.value = p.id;
             option.textContent = `${p.emoji} ${p.name}`;
             generatorPersonaSelect.appendChild(option);
         });
+        generateFromSourceBtn.disabled = false;
     }
 }
 
@@ -557,6 +1243,7 @@ function openCreateThreadModal() {
     sourceTextInput.value = '';
     switchTab('url'); // Default to URL tab
     populatePersonaSelector();
+    threadLanguageSelection.value = settingsLanguageSelection.value;
     createThreadModal.classList.remove('hidden');
     createThreadModal.classList.add('flex');
     createThreadModal.querySelector('div').classList.remove('modal-leave');
@@ -682,19 +1369,22 @@ async function getEmojiForPersona(name, prompt, model) {
 }
 
 async function generatePersonaName(prompt, model) {
-    const systemPrompt = "You are an AI specializing in branding. Based on the provided role description, create a concise and creative persona name (in Japanese, max 10 characters) that perfectly captures its essence. Output only the name, no extra text.";
-    const userPrompt = `Role Description: "${prompt}"\n\nPersona Name:`;
+    const lang = settingsLanguageSelection.value;
+    const systemPrompt = `You are an AI specializing in branding. Based on the provided role description, create a concise and creative persona name (in ${lang}, max 10 characters for Japanese/Chinese, or a few words for others) that perfectly captures its essence. Output only the name, no extra text.`;
+    const userPrompt = `Role Description: "${prompt}"\n\nPersona Name (in ${lang}):`;
     return await callGemini(systemPrompt, userPrompt, { model });
 }
 
 async function generatePersonaPrompt(name, model) {
-    const systemPrompt = "You are a creative writer. Based on the provided persona name, write a short, clear role description (in Japanese) for an AI that embodies that name. Output only the description, no extra text.";
-    const userPrompt = `Persona Name: "${name}"\n\nRole Description:`;
+    const lang = settingsLanguageSelection.value;
+    const systemPrompt = `You are a creative writer. Based on the provided persona name, write a short, clear role description (in ${lang}) for an AI that embodies that name. Output only the description, no extra text.`;
+    const userPrompt = `Persona Name: "${name}"\n\nRole Description (in ${lang}):`;
     return await callGemini(systemPrompt, userPrompt, { model });
 }
 
 async function generateRandomPersona(model) {
-    const systemPrompt = `Create a unique and interesting AI persona. Provide the output in a single JSON object with two keys: "personaName" (in Japanese, max 10 characters) and "personaPrompt" (a short role description in Japanese). Do not include any other text or markdown formatting.`;
+    const lang = settingsLanguageSelection.value;
+    const systemPrompt = `Create a unique and interesting AI persona. Provide the output in a single JSON object with two keys: "personaName" (in ${lang}, max 10 characters for Japanese/Chinese, or a few words for others) and "personaPrompt" (a short role description in ${lang}). Do not include any other text or markdown formatting.`;
     return await callGemini(systemPrompt, "", { responseMimeType: 'application/json', model });
 }
 
@@ -708,11 +1398,12 @@ async function getSummaryFromUrl(urls) {
 
 async function generateThreadContent(summary, personaId) {
     const model = settingsModelSelection.value;
+    const lang = threadLanguageSelection.value;
     const persona = personas.find(p => p.id === personaId);
     if (!persona) throw new Error("指定されたペルソナが見つかりません。");
 
     const systemPrompt = persona.prompt;
-    const userPrompt = `Based on the following article summary, create an engaging thread title and an initial post from your perspective as ${persona.name}. The title should be thought-provoking, and the post should encourage discussion. Provide the output in a single JSON object with two keys: "title" and "body". Do not include any other text or markdown formatting.
+    const userPrompt = `Based on the following article summary, create an engaging thread title and an initial post from your perspective as ${persona.name}. The title and post must be written in ${lang}. The title should be thought-provoking, and the post should encourage discussion. Provide the output in a single JSON object with two keys: "title" and "body". Do not include any other text or markdown formatting.
 
 Summary:
 ${summary}`;
@@ -754,11 +1445,9 @@ async function callGemini(systemPrompt, userPrompt, options = {}, retries = 3, d
             let errorText = await response.text();
             let errorMessage = `ステータス: ${response.status}`;
             try {
-                // Try to parse the error as JSON for more details
                 const errorJson = JSON.parse(errorText);
                 errorMessage = errorJson.error?.message || JSON.stringify(errorJson);
             } catch (e) {
-                // If it's not JSON, use the raw text
                 errorMessage = errorText || `ステータス: ${response.status} - 応答がありません`;
             }
             console.error('API Error Response:', errorMessage);
@@ -798,6 +1487,29 @@ async function callGemini(systemPrompt, userPrompt, options = {}, retries = 3, d
     }
 }
 
+
+// --- Thread Storage ---
+function saveThreadsToLocal() {
+    try {
+        localStorage.setItem(THREAD_STORAGE_KEY, JSON.stringify(threads));
+    } catch (e) {
+        console.error("Failed to save threads to localStorage", e);
+    }
+}
+
+function loadThreadsFromLocal() {
+    try {
+        const savedThreads = localStorage.getItem(THREAD_STORAGE_KEY);
+        if (savedThreads) {
+            threads = JSON.parse(savedThreads);
+        }
+    } catch (e) {
+        console.error("Failed to load threads from localStorage", e);
+        threads = [];
+    }
+}
+
+
 // --- Thread and Discussion Logic ---
 async function startDiscussion() {
     const title = threadTitleInput.value.trim();
@@ -809,10 +1521,15 @@ async function startDiscussion() {
         alert('スレッドタイトルと本文を入力してください。');
         return;
     }
-    if (personas.length < 2) {
-        alert('少なくとも2つのAIペルソナを登録してください。');
+
+    const adminPersonaId = adminAiPersonaSelection.value;
+    discussionPersonas = personas.filter(p => p.id.toString() !== adminPersonaId);
+
+    if (discussionPersonas.length < 2) {
+        alert('管理人AIを除いて、少なくとも2つの議論参加用AIペルソナを登録してください。');
         return;
     }
+
     if (selectedModel !== 'gemini-2.5-flash-preview-05-20' && !userApiKey) {
         alert(`モデル「${selectedModel}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
         return;
@@ -822,7 +1539,7 @@ async function startDiscussion() {
     referenceCount = parseInt(referenceCountInput.value, 10);
     responseLength = parseInt(responseLengthInput.value, 10);
     discussionModel = selectedModel;
-
+    discussionLanguage = threadLanguageSelection.value;
 
     closeCreateThreadModal();
     
@@ -832,13 +1549,22 @@ async function startDiscussion() {
     responseCount = 0;
 
     const userUID = crypto.randomUUID().slice(0, 8);
+    const threadId = crypto.randomUUID();
+    currentThreadId = threadId;
+
     currentThread = {
+        id: threadId,
         title: title,
+        createdAt: Date.now(),
         sources: [...sourceUrls],
+        language: discussionLanguage,
         posts: [
             { author: 'あなた', content: body, timestamp: new Date().toISOString(), uid: userUID }
         ]
     };
+    
+    threads.push(currentThread);
+    saveThreadsToLocal();
     
     renderThread(title);
     showGenerationControls();
@@ -861,18 +1587,33 @@ async function generationLoop() {
         if (!isGenerating) break;
 
         updateGenerationStatus();
+        adminAiReasoning.textContent = ''; // Clear previous reasoning
 
         try {
-            const nextSpeakerName = await selectNextSpeaker(referenceCount);
-            if (!nextSpeakerName || nextSpeakerName.toLowerCase().startsWith('error')) {
-                console.error(`Error: Could not select the next speaker. (${nextSpeakerName})`);
-                break;
+            const adminAiChoice = await selectNextSpeaker(referenceCount);
+            const nextSpeakerName = adminAiChoice?.speakerName;
+            const reasoning = adminAiChoice?.reasoning;
+
+            if (reasoning) {
+                 const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+                 const adminEmoji = adminPersona ? adminPersona.emoji : '🎀';
+                 adminAiReasoning.textContent = `（管理人AI${adminEmoji}: ${reasoning}）`;
+                 console.log(`管理人AI${adminEmoji}: ${reasoning}`);
             }
 
-            const nextSpeakerPersona = personas.find(p => p.name === nextSpeakerName);
+            if (!nextSpeakerName) {
+                console.error(`Error: Could not select the next speaker.`, adminAiChoice);
+                adminAiReasoning.textContent = `（管理人AI🎀: 次の方をどう選ぶか、少し考え中です…🤔）`;
+                await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
+                continue;
+            }
+
+            const nextSpeakerPersona = discussionPersonas.find(p => p.name === nextSpeakerName);
             if (!nextSpeakerPersona) {
-                 console.error(`Error: Persona "${nextSpeakerName}" not found.`);
-                 break;
+                 console.error(`Error: Persona "${nextSpeakerName}" not found in discussion group.`);
+                 adminAiReasoning.textContent = `（管理人AI🎀: あれ？「${nextSpeakerName}」さんが見当たらないみたいです…）`;
+                 await new Promise(res => setTimeout(res, 2000));
+                 continue;
             }
 
             const response = await generateResponse(nextSpeakerPersona, responseLength, referenceCount);
@@ -885,20 +1626,23 @@ async function generationLoop() {
             };
             currentThread.posts.push(newPost);
             
+            saveThreadsToLocal();
+            
             responseCount++;
             
-            const speakerIndex = personas.findIndex(p => p.name === nextSpeakerName);
+            const speakerIndex = discussionPersonas.findIndex(p => p.name === nextSpeakerName);
             addPostToThread(newPost.author, newPost.content, speakerIndex, newPost.timestamp, null, newPost.uid);
             
             await new Promise(res => setTimeout(res, 100));
         } catch(error) {
             console.error(`An API error occurred: ${error.message}`);
+            adminAiReasoning.textContent = `（管理人AI🎀: エラーが発生してしまいました…！少し休憩しますね☕）`;
             isPaused = true;
             updateControlsForPauseState();
         }
     }
 
-    if(isGenerating){ // Loop finished because of maxResponses or another break
+    if(isGenerating){ 
         isGenerating = false;
         isFinished = true;
         updateControlsForFinishedState();
@@ -910,23 +1654,41 @@ async function selectNextSpeaker(referenceCount) {
     const relevantPosts = currentThread.posts.slice(-referenceCount);
     const historyText = relevantPosts.map(p => `${p.author} (ID:${p.uid}): ${p.content}`).join('\n\n');
 
-    const personaNames = personas.map(p => p.name).join(', ');
+    const personaNames = discussionPersonas.map(p => p.name).join(', ');
     
-    const systemPrompt = `You are the "Admin AI" facilitating a discussion between AIs.
-Considering the following conversation history and list of participants, select the single name of the participant who should speak next to deepen or liven up the discussion.
-Your response must be only the participant's name. Do not include any other words.`;
+    const adminPersonaId = adminAiPersonaSelection.value;
+    const adminPersona = personas.find(p => p.id === parseInt(adminPersonaId));
+    
+    const systemPrompt = adminPersona ? adminPersona.prompt : 'あなたは優秀なアシスタントです。';
 
-    const userPrompt = `# Conversation History
+    const userPrompt = `あなたは「AI自動生成掲示板」の議論を円滑に進める役割を担っています。あなたの現在のペルソナ（性格）はシステムプロンプトに設定されています。そのペルソナとして振る舞ってください。
+
+以下の会話履歴と参加者リストを考慮して、次に話すべき参加者の名前（speakerName）と、その選定理由（reasoning）をJSONオブジェクトとして返してください。
+
+# 制約
+- speakerNameには、参加者リストに存在する名前を一つだけ含めてください。
+- reasoningは、あなたの現在のペルソナになりきって、80文字以内で記述してください。
+- 出力は必ず \`{ "speakerName": "...", "reasoning": "..." }\` という形式のJSONオブジェクトだけにしてください。
+
+# Conversation History
 ${historyText}
 
 # Participant List
-${personaNames}
+${personaNames}`;
 
-Who should speak next:`;
-
-    const nextSpeaker = await callGemini(systemPrompt, userPrompt, { model: discussionModel });
-    const foundPersona = personas.find(p => nextSpeaker.includes(p.name));
-    return foundPersona ? foundPersona.name : nextSpeaker;
+    try {
+        const result = await callGemini(systemPrompt, userPrompt, { model: discussionModel, responseMimeType: 'application/json' });
+        // Ensure the returned speaker name is valid from the DISCUSSION personas
+        const foundPersona = discussionPersonas.find(p => result.speakerName && result.speakerName.includes(p.name));
+        if (foundPersona) {
+            result.speakerName = foundPersona.name; // Use the exact name
+            return result;
+        }
+        return { speakerName: null, reasoning: "どなたにお願いするか、ちょっと迷っちゃいますね…！" };
+    } catch(e) {
+        console.error("Failed to get next speaker choice:", e);
+        return { speakerName: null, reasoning: "エラーで次の発言者を選べませんでした…" };
+    }
 }
 
 async function generateResponse(persona, length, referenceCount) {
@@ -935,25 +1697,26 @@ async function generateResponse(persona, length, referenceCount) {
 
     const systemPrompt = persona.prompt;
     
-    const lengthInstruction = `返信は日本語で、${length}文字以内でお願いします。`;
+    const lengthInstruction = `Your response must be in ${discussionLanguage} and within ${length} characters.`;
 
-    const userPrompt = `# これまでの会話履歴
+    const userPrompt = `# Conversation History
 ${historyText}
 
-# あなたの指示
-上記の会話履歴を踏まえ、あなたの役割 (${persona.emoji} ${persona.name} ID:${persona.uid}) になりきって、次の発言をしてください。発言は自然で、会話の流れに沿ったものにしてください。${lengthInstruction}
+# Your Instructions
+Based on the conversation history above, act as your role (${persona.emoji} ${persona.name} ID:${persona.uid}) and provide the next statement. Your statement should be natural and follow the flow of the conversation. ${lengthInstruction}
 
-あなたの発言:`;
+Your response (in ${discussionLanguage}):`;
 
     return await callGemini(systemPrompt, userPrompt, { model: discussionModel });
 }
 
 // --- UI Rendering ---
 function renderThread(title) {
-    const welcomeMsgElement = document.getElementById('welcomeMessage');
-    if (welcomeMsgElement) {
-       welcomeMsgElement.remove();
-    }
+    threadIndexContainer.classList.add('hidden');
+    threadDisplayContainer.classList.remove('hidden');
+    backToIndexBtn.classList.remove('hidden');
+    openMenuBtn.classList.add('hidden');
+
     threadContainer.innerHTML = '';
     
     const titleElement = document.createElement('h2');
@@ -976,7 +1739,6 @@ function renderThread(title) {
         sourceContainer.innerHTML = sourceLinks;
         threadHeader.appendChild(sourceContainer);
     }
-
 
     currentThread.posts.forEach((post, index) => {
         const authorIndex = post.author === 'あなた' ? -2 : personas.findIndex(p => post.author.includes(p.name));
@@ -1023,8 +1785,14 @@ function showGenerationControls() {
     generationStatus.classList.remove('hidden');
     generationStatus.classList.add('flex');
     pausedControls.classList.add('hidden');
-    exportContainer.classList.remove('hidden');
+    adminAiReasoning.textContent = '';
+}
 
+function setupUIForLoadedThread() {
+    generationControls.classList.add('hidden');
+    isGenerating = false;
+    isPaused = false;
+    isFinished = true;
 }
 
 function updateControlsForFinishedState() {
@@ -1034,6 +1802,7 @@ function updateControlsForFinishedState() {
     continueMaxResponsesInput.value = maxResponses;
     pauseResumeBtn.textContent = '再開';
     stopBtn.classList.add('hidden');
+    adminAiReasoning.textContent = '議論は終了しました。お疲れ様でした！✨';
 }
 
 function updateControlsForPauseState() {
@@ -1042,6 +1811,7 @@ function updateControlsForPauseState() {
     pausedControls.classList.remove('hidden');
     pausedControls.classList.add('flex');
     continueMaxResponsesInput.value = maxResponses;
+    adminAiReasoning.textContent = `（管理人AI🎀: 一時停止中です。準備ができたら教えてくださいね！）`;
 }
 
 function updateGenerationStatus() {
@@ -1088,6 +1858,23 @@ function handleStop() {
 
 
 // --- Utility Functions ---
+function exportPersonas() {
+    if (personas.length === 0) {
+        alert("エクスポートするペルソナがありません。");
+        return;
+    }
+    const jsonString = JSON.stringify(personas, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-personas.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 function downloadThreadAsJSON() {
     if (!currentThread) {
         alert("ダウンロードするスレッドがありません。");
@@ -1098,7 +1885,7 @@ function downloadThreadAsJSON() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'thread.json';
+    a.download = `thread-${currentThread.title}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1106,25 +1893,29 @@ function downloadThreadAsJSON() {
 }
 
 async function downloadThreadAsImage() {
-    const button = document.getElementById('downloadImageBtn');
+    const button = document.getElementById('exportImageAction');
     if (!currentThread) {
         alert("保存するスレッドがありません。");
         return;
     }
-    
-    button.textContent = '画像を生成中...';
-    button.disabled = true;
+    if (button.classList.contains('is-loading')) return; // Prevent multiple clicks
+
+    const textSpan = button.querySelector('span');
+    const originalText = textSpan.textContent;
+
+    textSpan.textContent = '画像を生成中...';
+    button.classList.add('is-loading', 'opacity-50', 'pointer-events-none');
 
     try {
         const canvas = await html2canvas(document.getElementById('threadParent'), {
             backgroundColor: '#F0E0D6',
-            useCORS: true 
+            useCORS: true
         });
         const imageURL = canvas.toDataURL('image/png');
         
         const a = document.createElement('a');
         a.href = imageURL;
-        a.download = 'thread.png';
+        a.download = `thread-${currentThread.title}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1133,8 +1924,8 @@ async function downloadThreadAsImage() {
         console.error("画像の生成に失敗しました:", error);
         alert("画像の生成に失敗しました。コンソールを確認してください。");
     } finally {
-        button.textContent = '画像として保存';
-        button.disabled = false;
+        textSpan.textContent = originalText;
+        button.classList.remove('is-loading', 'opacity-50', 'pointer-events-none');
     }
 }
 
@@ -1152,18 +1943,346 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// --- Thread Management Modal ---
+function openThreadListModal() {
+    renderThreadList();
+    threadListModal.classList.remove('hidden');
+    threadListModal.classList.add('flex');
+}
+
+function closeThreadListModal() {
+    threadListModal.classList.add('hidden');
+    threadListModal.classList.remove('flex');
+}
+
+function renderThreadList() {
+    threadListContainer.innerHTML = '';
+    if (threads.length === 0) {
+        threadListContainer.innerHTML = `<p class="text-center text-gray-500 py-4">保存されたスレッドはありません。</p>`;
+        return;
+    }
+
+    const sortedThreads = threads.sort((a, b) => b.createdAt - a.createdAt);
+
+    sortedThreads.forEach(thread => {
+        const threadItem = document.createElement('div');
+        threadItem.className = 'flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0';
+        
+        const timestamp = new Date(thread.createdAt).toLocaleString('ja-JP', {
+            year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+
+        threadItem.innerHTML = `
+            <div class="flex-grow overflow-hidden pr-4">
+                <p class="font-semibold text-gray-800 truncate" title="${thread.title}">${thread.title}</p>
+                <p class="text-sm text-gray-500">${timestamp} - ${thread.posts.length}レス</p>
+            </div>
+            <div class="flex-shrink-0 flex items-center space-x-2">
+                <button data-id="${thread.id}" class="load-thread-btn bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">読み込む</button>
+                <button data-id="${thread.id}" class="delete-thread-btn bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">削除</button>
+            </div>
+        `;
+        threadListContainer.appendChild(threadItem);
+    });
+}
+
+function handleThreadListClick(e) {
+    const target = e.target;
+    const id = target.dataset.id;
+    if (!id) return;
+
+    if (target.classList.contains('load-thread-btn')) {
+        loadThread(id);
+    } else if (target.classList.contains('delete-thread-btn')) {
+        deleteThread(id);
+    }
+}
+
+function loadThread(id) {
+    const threadIndex = threads.findIndex(t => t.id === id);
+    if (threadIndex === -1) {
+        alert('スレッドが見つかりませんでした。');
+        return;
+    }
+    
+    currentThread = threads[threadIndex];
+    currentThreadId = id;
+    discussionLanguage = currentThread.language || '日本語';
+    renderThread(currentThread.title);
+    setupUIForLoadedThread();
+    closeThreadListModal();
+    closeMenu();
+}
+
+function deleteThread(id) {
+    const thread = threads.find(t => t.id === id);
+    if (!thread) return;
+
+    openConfirmationModal(
+        'スレッドを削除しますか？',
+        `「${thread.title}」を完全に削除します。この操作は元に戻せません。`,
+        () => {
+            threads = threads.filter(t => t.id !== id);
+            saveThreadsToLocal();
+            
+            if (currentThread && currentThread.id === id) {
+                clearThreadView();
+            } else {
+                renderThreadIndex(); // Update index if a different thread was deleted
+            }
+            // Also update the list in the modal if it's open
+            if (!threadListModal.classList.contains('hidden')) {
+                renderThreadList();
+            }
+        }
+    );
+}
+
+function clearThreadView() {
+    threadDisplayContainer.classList.add('hidden');
+    threadIndexContainer.classList.remove('hidden');
+    backToIndexBtn.classList.add('hidden');
+    openMenuBtn.classList.remove('hidden');
+    generationControls.classList.add('hidden');
+    adminAiReasoning.textContent = '';
+    
+    currentThread = null;
+    currentThreadId = null;
+    renderThreadIndex();
+}
+
+
+// --- Thread Index and Search ---
+function renderThreadIndex(threadsToRender = threads) {
+    threadIndexList.innerHTML = '';
+    const sortedThreads = [...threadsToRender].sort((a, b) => b.createdAt - a.createdAt);
+
+    if (sortedThreads.length === 0) {
+        threadIndexList.innerHTML = `
+            <div class="text-center text-gray-600 py-10">
+                <p class="text-lg font-semibold">スレッドがありません</p>
+                <p>右上の「スレッド操作」から新しいスレッドを作成してください。</p>
+            </div>`;
+        return;
+    }
+
+    sortedThreads.forEach(thread => {
+        const item = document.createElement('div');
+        item.className = 'bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 transition-all';
+        const timestamp = new Date(thread.createdAt).toLocaleString('ja-JP', {
+            year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+
+        item.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex-grow overflow-hidden pr-4">
+                    <p class="font-semibold text-gray-800 truncate cursor-pointer hover:text-indigo-600" title="${thread.title}" onclick="loadThread('${thread.id}')">${thread.title}</p>
+                    <p class="text-sm text-gray-500">${timestamp} - ${thread.posts.length}レス</p>
+                </div>
+                <div class="flex-shrink-0 flex items-center space-x-2">
+                    <button onclick="loadThread('${thread.id}')" class="bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">読み込む</button>
+                    <button onclick="deleteThread('${thread.id}')" class="bg-red-100 text-red-700 py-1 px-3 rounded-md hover:bg-red-200 text-sm">削除</button>
+                </div>
+            </div>`;
+        threadIndexList.appendChild(item);
+    });
+}
+
+function handleSearch() {
+    const keyword = searchInput.value.trim().toLowerCase();
+    if (!keyword) {
+        renderThreadIndex(threads);
+        return;
+    }
+    const filtered = threads.filter(t => t.title.toLowerCase().includes(keyword));
+    renderThreadIndex(filtered);
+}
+
+async function handleAiSearch() {
+    const keyword = searchInput.value.trim();
+    if (!keyword) {
+        alert('AI検索を行うキーワードを入力してください。');
+        return;
+    }
+
+    aiSearchBtn.disabled = true;
+    aiSearchBtnText.innerHTML = `<div class="loader spinner-small animate-spin mx-auto"></div>`;
+
+    try {
+        const threadData = threads.map(t => ({ 
+            id: t.id, 
+            title: t.title, 
+            content: t.posts.map(p => p.content).slice(0, 5).join(' ') // First 5 posts for brevity
+        }));
+        
+        const systemPrompt = `You are a highly intelligent search AI. Your task is to find threads relevant to a user's query from a provided list.
+Return the result as a single JSON object with one key: "relevant_ids". This key should hold an array of thread IDs, sorted from most to least relevant.
+Do not include any other text, explanations, or markdown formatting.`;
+        
+        const userPrompt = `Query: "${keyword}"\n\nThreads Data:\n${JSON.stringify(threadData)}`;
+
+        const result = await callGemini(systemPrompt, userPrompt, { responseMimeType: 'application/json', model: settingsModelSelection.value });
+
+        if (result && Array.isArray(result.relevant_ids)) {
+            const relevantThreads = result.relevant_ids
+                .map(id => threads.find(t => t.id === id))
+                .filter(Boolean); // Filter out any undefined if IDs don't match
+            renderThreadIndex(relevantThreads);
+        } else {
+             renderThreadIndex([]); // Show no results if response is invalid
+        }
+    } catch (error) {
+        alert(`AI検索に失敗しました: ${error.message}`);
+        renderThreadIndex(threads); // Show all threads on failure
+    } finally {
+        aiSearchBtn.disabled = false;
+        aiSearchBtnText.textContent = 'AI検索';
+    }
+}
+
+
+// --- Help Chat Logic ---
+function switchHelpTab(tab) {
+    if (tab === 'guide') {
+        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
+        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        helpPanelGuide.classList.remove('hidden');
+        helpPanelChat.classList.add('hidden');
+    } else {
+        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
+        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        helpPanelChat.classList.remove('hidden');
+        helpPanelChat.classList.add('flex');
+        helpPanelGuide.classList.add('hidden');
+    }
+}
+
+function addChatMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    if (sender === 'ai') {
+        const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+        const adminEmoji = adminPersona ? adminPersona.emoji : 'AI';
+        const adminName = adminPersona ? adminPersona.name.substring(0,2) : 'AI';
+
+        messageElement.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold" title="${adminPersona.name}">${adminEmoji}</div>
+                <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+                    <p class="text-sm text-gray-800">${message.replace(/\n/g, '<br>')}</p>
+                </div>
+            </div>`;
+    } else { // user
+        messageElement.innerHTML = `
+            <div class="flex items-start gap-3 justify-end">
+                <div class="bg-indigo-500 text-white rounded-lg p-3 max-w-[80%]">
+                    <p class="text-sm">${message.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">You</div>
+            </div>`;
+    }
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function resetHelpChat() {
+    chatMessages.innerHTML = '';
+    const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+    const welcomeMessage = adminPersona ? 'こんにちは！アプリの使い方で分からないことがあれば、なんでも聞いてくださいね♪' : 'ようこそ！ご質問をどうぞ。';
+    addChatMessage('ai', welcomeMessage);
+    switchHelpTab('guide');
+}
+
+async function handleChatSend() {
+    const userInput = chatInput.value.trim();
+    if (!userInput) return;
+
+    addChatMessage('user', userInput);
+    chatInput.value = '';
+    chatInput.disabled = true;
+    chatSendBtn.disabled = true;
+    aiTypingIndicator.classList.remove('hidden');
+
+    try {
+        const lang = settingsLanguageSelection.value;
+        const adminPersonaId = adminAiPersonaSelection.value;
+        const adminPersona = personas.find(p => p.id === parseInt(adminPersonaId));
+        
+        const systemPrompt = adminPersona ? adminPersona.prompt : 'あなたは親切なアシスタントです。';
+
+        const context = [...document.querySelectorAll('#helpPanelGuide section')].map(s => s.innerText).join('\n\n');
+        const userPrompt = `あなたは「AI自動生成掲示板」の操作方法を案内するアシスタントです。あなたのペルソナ（性格）はシステムプロンプトに設定されています。そのペルソナとして、以下のアプリ仕様を参考にユーザーの質問に答えてください。回答は常に、指定されたデフォルト言語（${lang}）で行ってください。
+
+# アプリの仕様
+${context}
+
+# ユーザーの質問
+${userInput}`;
+
+        const response = await callGemini(systemPrompt, userPrompt, { model: settingsModelSelection.value });
+        addChatMessage('ai', response);
+
+    } catch(error) {
+        addChatMessage('ai', '申し訳ありません、エラーが発生してしまいました…😥 もう一度試していただけますか？');
+        console.error('Help Chat Error:', error);
+    } finally {
+        aiTypingIndicator.classList.add('hidden');
+        chatInput.disabled = false;
+        chatSendBtn.disabled = false;
+        chatInput.focus();
+    }
+}
+
+
 // --- Event Listeners ---
 addPersonaBtn.addEventListener('click', addPersona);
 startThreadBtn.addEventListener('click', startDiscussion);
 openMenuBtn.addEventListener('click', openMenu);
 closeMenuBtn.addEventListener('click', closeMenu);
 menuBackdrop.addEventListener('click', closeMenu);
+settingsModelSelection.addEventListener('change', saveSettingsToLocal);
+apiKeyInput.addEventListener('input', saveSettingsToLocal);
+settingsLanguageSelection.addEventListener('change', saveSettingsToLocal);
+adminAiPersonaSelection.addEventListener('change', () => {
+    saveSettingsToLocal();
+    populatePersonaSelector(); // Update generator list when admin persona changes
+});
+
+
 // Edit Modal Listeners
 closeEditModalBtn.addEventListener('click', closeEditModal);
 cancelEditBtn.addEventListener('click', closeEditModal);
 savePersonaBtn.addEventListener('click', savePersona);
+
+// JSON Edit Modal Listeners
+editJsonBtn.addEventListener('click', openJsonModal);
+closeJsonModalBtn.addEventListener('click', closeJsonModal);
+cancelJsonEditBtn.addEventListener('click', closeJsonModal);
+saveJsonBtn.addEventListener('click', saveJsonChanges);
+formatJsonBtn.addEventListener('click', formatJson);
+
+// Restore Backup Listeners
+openRestoreModalBtn.addEventListener('click', openRestoreModal);
+closeRestoreModalBtn.addEventListener('click', closeRestoreModal);
+cancelRestoreBtn.addEventListener('click', closeRestoreModal);
+backupListContainer.addEventListener('click', handleRestoreClick);
+
+// Thread List Listeners
+closeThreadListModalBtn.addEventListener('click', closeThreadListModal);
+cancelThreadListBtn.addEventListener('click', closeThreadListModal);
+threadListContainer.addEventListener('click', handleThreadListClick);
+
+
+// Confirmation Modal Listeners
+cancelConfirmBtn.addEventListener('click', closeConfirmationModal);
+confirmActionBtn.addEventListener('click', () => {
+    if (confirmationCallback) {
+        confirmationCallback();
+    }
+    closeConfirmationModal();
+});
+
+
 // Create Thread Modal Listeners
-openCreateThreadModalBtn.addEventListener('click', openCreateThreadModal);
 closeCreateThreadModalBtn.addEventListener('click', closeCreateThreadModal);
 cancelCreateThreadBtn.addEventListener('click', closeCreateThreadModal);
 addUrlBtn.addEventListener('click', addUrlToList);
@@ -1173,27 +2292,129 @@ tabText.addEventListener('click', () => switchTab('text'));
 // Generation Control Listeners
 pauseResumeBtn.addEventListener('click', handlePauseResume);
 stopBtn.addEventListener('click', handleStop);
+
+// Persona Management Listeners
+const importFileInput = document.getElementById('importFileInput');
+const importPersonasBtn = document.getElementById('importPersonasBtn');
+const exportPersonasBtn = document.getElementById('exportPersonasBtn');
+
+function handleImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!Array.isArray(imported)) {
+                throw new Error("JSONが配列形式ではありません。");
+            }
+
+            let addedCount = 0;
+            const existingUids = new Set(personas.map(p => p.uid));
+
+            imported.forEach(p => {
+                if (p && p.name && p.prompt && p.uid && p.emoji) {
+                    if (!existingUids.has(p.uid)) {
+                        personas.push(p);
+                        existingUids.add(p.uid);
+                        addedCount++;
+                    }
+                }
+            });
+
+            if (addedCount > 0) {
+                createBackup();
+                savePersonasToLocal();
+                renderPersonas();
+                alert(`${addedCount}件の新しいペルソナをインポートしました。`);
+            } else {
+                alert("新しいペルソナはありませんでした。(UIDが重複している可能性があります)");
+            }
+
+        } catch (error) {
+            alert(`ファイルの読み込みまたは解析に失敗しました: ${error.message}`);
+        } finally {
+            importFileInput.value = '';
+        }
+    };
+    reader.readAsText(file);
+}
+
+importPersonasBtn.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', handleImport);
+exportPersonasBtn.addEventListener('click', exportPersonas);
+
 // Header listeners
-exportBtn.addEventListener('click', () => exportDropdown.classList.toggle('hidden'));
-downloadJsonBtn.addEventListener('click', (e) => {
+threadActionsBtn.addEventListener('click', () => threadActionsDropdown.classList.toggle('hidden'));
+newThreadBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openCreateThreadModal();
+    threadActionsDropdown.classList.add('hidden');
+});
+loadThreadBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openThreadListModal();
+    threadActionsDropdown.classList.add('hidden');
+});
+exportJsonAction.addEventListener('click', (e) => {
     e.preventDefault();
     downloadThreadAsJSON();
-    exportDropdown.classList.add('hidden');
+    threadActionsDropdown.classList.add('hidden');
 });
-downloadImageBtn.addEventListener('click', (e) => {
+exportImageAction.addEventListener('click', (e) => {
     e.preventDefault();
     downloadThreadAsImage();
-    exportDropdown.classList.add('hidden');
+    threadActionsDropdown.classList.add('hidden');
 });
 window.addEventListener('click', (e) => {
-    if (!exportContainer.contains(e.target)) {
-        exportDropdown.classList.add('hidden');
+    if (!threadActionsContainer.contains(e.target)) {
+        threadActionsDropdown.classList.add('hidden');
+    }
+});
+backToIndexBtn.addEventListener('click', clearThreadView);
+
+helpBtn.addEventListener('click', openHelpModal);
+closeHelpModalBtn.addEventListener('click', closeHelpModal);
+helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        closeHelpModal();
+    }
+});
+// Help Chat Listeners
+helpTabGuide.addEventListener('click', () => switchHelpTab('guide'));
+helpTabChat.addEventListener('click', () => switchHelpTab('chat'));
+chatSendBtn.addEventListener('click', handleChatSend);
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        handleChatSend();
     }
 });
 
 
+// Search Listeners
+searchBtn.addEventListener('click', handleSearch);
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        handleSearch();
+    }
+});
+aiSearchBtn.addEventListener('click', handleAiSearch);
+
+
 // --- Initial Render ---
-renderPersonas();
+function initializeApp() {
+    loadPersonasFromLocal();
+    ensureDefaultAdminPersona();
+    loadBackupsFromLocal();
+    loadThreadsFromLocal();
+    renderPersonas(); // This now calls populateAdminAiSelector
+    loadSettingsFromLocal(); // Must be after renderPersonas to set the select value
+    renderThreadIndex();
+}
+
+initializeApp();
 
 </script>
 </body>
