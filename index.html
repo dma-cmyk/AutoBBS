@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI自動生成掲示板</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=M+PLUS+1p:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     
     <!-- CodeMirror Editor Assets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
@@ -19,36 +23,36 @@
     <script src="https://unpkg.com/jsonlint@1.6.3/web/jsonlint.js"></script>
 
     <style>
+        /* --- Cool Design Style --- */
         body {
-            font-family: 'M PLUS 1p', sans-serif;
+            font-family: 'Inter', 'M PLUS 1p', sans-serif;
             padding-top: 80px; /* Header height */
-            background-color: #F0E0D6;
+            background-color: #0f172a; /* bg-slate-900 */
         }
         .thread-post {
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #334155; /* slate-700 */
         }
         .post-header {
-            color: #888;
+            color: #94a3b8; /* slate-400 */
         }
         .post-author {
-            color: #008000;
+            color: #4ade80; /* green-400 */
             font-weight: 700;
         }
         .post-content {
-            text-indent: 1em;
-            line-height: 1.6;
+            line-height: 1.7;
         }
         .loader {
-            border: 4px solid #ccc;
-            border-top: 4px solid #008000;
+            border: 4px solid #475569; /* slate-600 */
+            border-top: 4px solid #818cf8; /* indigo-400 */
             border-radius: 50%;
             width: 24px;
             height: 24px;
             animation: spin 1s linear infinite;
         }
         .spinner-small {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
+            border: 2px solid #475569; /* slate-600 */
+            border-top: 2px solid #60a5fa; /* blue-400 */
             width: 16px;
             height: 16px;
         }
@@ -61,7 +65,8 @@
             cursor: pointer;
         }
         .persona-chip:hover {
-            transform: scale(1.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
         /* Modal Animation */
         .modal-enter { animation: fadeIn 0.3s ease-out; }
@@ -69,58 +74,125 @@
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
 
-        /* CodeMirror Editor Style */
+        /* CodeMirror Editor Style for Dark Mode */
         .CodeMirror {
-            border: 1px solid #ddd;
+            border: 1px solid #475569; /* slate-600 */
             height: 100%;
             font-size: 14px;
-            border-radius: 0.375rem;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        
+        .glass-effect {
+            background-color: rgba(30, 41, 59, 0.7); /* bg-slate-800 with opacity */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5); /* slate-600 with opacity */
+        }
+
+        .shiny-border {
+            border: 1px solid #334155; /* slate-700 */
+        }
+        .shiny-border:hover {
+            border-color: #4f46e5; /* indigo-600 */
+        }
+
+        /* Styles for rendered Markdown content */
+        .rendered-markdown > *:first-child { margin-top: 0; }
+        .rendered-markdown > *:last-child { margin-bottom: 0; }
+        .rendered-markdown h1, .rendered-markdown h2, .rendered-markdown h3, .rendered-markdown h4 {
+            font-weight: bold;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .rendered-markdown h1 { font-size: 1.5em; }
+        .rendered-markdown h2 { font-size: 1.25em; }
+        .rendered-markdown h3 { font-size: 1.1em; }
+        .rendered-markdown p { margin-bottom: 0.5rem; }
+        .rendered-markdown ul, .rendered-markdown ol {
+            list-style-position: inside;
+            margin-left: 1.5em;
+            margin-bottom: 0.5rem;
+        }
+        .rendered-markdown li { margin-bottom: 0.25rem; }
+        .rendered-markdown a {
+            color: #60a5fa; /* blue-400 */
+            text-decoration: underline;
+        }
+        .rendered-markdown code {
+            background-color: #1e293b; /* slate-800 */
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .rendered-markdown pre {
+            background-color: #1e293b; /* slate-800 */
+            padding: 1em;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid #334155; /* slate-700 */
+        }
+        .rendered-markdown pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .rendered-markdown blockquote {
+            border-left: 4px solid #475569; /* slate-600 */
+            padding-left: 1em;
+            margin-left: 0;
+            color: #94a3b8; /* slate-400 */
+            font-style: italic;
+        }
+        .rendered-markdown table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .rendered-markdown th, .rendered-markdown td {
+            border: 1px solid #475569; /* slate-600 */
+            padding: 0.5rem;
+        }
+        .rendered-markdown th {
+            background-color: #334155; /* slate-700 */
         }
     </style>
 </head>
-<body class="text-gray-800">
+<body class="bg-slate-900 text-slate-300">
 
-    <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md shadow-sm z-40 h-20">
+    <header class="fixed top-0 left-0 w-full bg-slate-900/70 backdrop-blur-lg z-30 h-20 pl-20">
         <div class="container mx-auto px-4 md:px-8 h-full flex justify-between items-center">
             <div class="flex items-center">
-                <button id="backToIndexBtn" class="hidden p-2 mr-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors" title="スレッド一覧に戻る">
+                <button id="backToIndexBtn" class="hidden p-2 mr-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-900 transition-colors" title="スレッド一覧に戻る">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 </button>
-                <button id="openMenuBtn" class="p-2 mr-4 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                </button>
-                <h1 class="text-2xl font-bold text-gray-900">AI自動生成掲示板</h1>
+                <h1 class="text-2xl font-bold text-slate-100">AI自動生成掲示板</h1>
             </div>
             <div class="flex items-center space-x-2">
-                 <!-- Export Dropdown is removed from here -->
-
                 <!-- Thread Actions Dropdown -->
                 <div id="threadActionsContainer" class="relative">
-                    <button id="threadActionsBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold flex items-center">
+                    <button id="threadActionsBtn" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-900 font-semibold flex items-center shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all">
                         スレッド操作
                         <svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                     </button>
-                    <div id="threadActionsDropdown" class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50">
+                    <div id="threadActionsDropdown" class="absolute right-0 mt-2 w-56 rounded-xl shadow-lg bg-slate-800 ring-1 ring-slate-700 hidden z-50">
                         <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                            <a href="#" id="newThreadBtn" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                                <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                            <a href="#" id="newThreadBtn" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white" role="menuitem">
+                                <svg class="w-5 h-5 mr-2 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
                                 新しいスレッドを作成
                             </a>
-                            <a href="#" id="loadThreadBtn" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                                <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                            <a href="#" id="loadThreadBtn" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white" role="menuitem">
+                                <svg class="w-5 h-5 mr-2 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                                 保存したスレッドを開く
                             </a>
-                            <!-- Export Actions Wrapper -->
                             <div id="exportActionsWrapper">
-                                <div class="border-t border-gray-200 my-1"></div>
-                                <a href="#" id="exportJsonAction" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                                    <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div class="border-t border-slate-700 my-1"></div>
+                                <a href="#" id="exportJsonAction" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white" role="menuitem">
+                                    <svg class="w-5 h-5 mr-2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
                                     <span>JSONとして保存</span>
                                 </a>
-                                <a href="#" id="exportImageAction" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
-                                    <svg class="w-5 h-5 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <a href="#" id="exportImageAction" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white" role="menuitem">
+                                    <svg class="w-5 h-5 mr-2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     <span>画像として保存</span>
@@ -129,79 +201,127 @@
                         </div>
                     </div>
                 </div>
-                <button id="helpBtn" class="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
-                    </svg>
-                </button>
             </div>
         </div>
     </header>
 
+    <!-- Left Sidebar -->
+    <div class="fixed top-0 left-0 h-screen w-20 bg-slate-900 border-r border-slate-800 z-40 flex flex-col items-center justify-between py-6">
+        <div>
+             <button id="openMenuBtn" class="p-3 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" title="設定">
+                <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </div>
+        <div>
+             <button id="helpBtn" class="p-3 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" title="ヘルプ">
+                <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
     <!-- Side Menu -->
-    <div id="sideMenu" class="fixed top-0 left-0 w-full max-w-md h-full bg-white shadow-lg z-50 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
+    <div id="sideMenu" class="fixed top-0 left-0 w-full max-w-md h-full bg-slate-900 shadow-lg z-50 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto border-r border-slate-700">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold">設定</h2>
-                <button id="closeMenuBtn" class="text-gray-500 hover:text-gray-800">
+                <h2 class="text-2xl font-semibold text-white">設定</h2>
+                <button id="closeMenuBtn" class="text-slate-400 hover:text-white">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             <div class="space-y-8">
-                <!-- Persona Settings -->
-                <div class="bg-white p-6 rounded-lg border border-gray-200">
-                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">AIペルソナ設定 (<span id="personaCount">0</span>)</h2>
-                    <p class="text-sm text-gray-500 mb-4">項目が未入力の場合、AIが自動で補完・生成します。</p>
+                <!-- Admin Persona Settings -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-600 pb-2 text-indigo-400">管理人・ヘルプAI設定</h2>
                     <div class="space-y-4 mb-4">
                         <div>
-                            <label for="personaName" class="block text-sm font-medium text-gray-700">ペルソナ名</label>
-                            <input type="text" id="personaName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="例：冷静な分析家">
+                            <label for="adminPersonaName" class="block text-sm font-medium text-slate-400">ペルソナ名</label>
+                            <input type="text" id="adminPersonaName" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 placeholder-slate-400" placeholder="例：親切な案内役">
                         </div>
                         <div>
-                            <label for="personaPrompt" class="block text-sm font-medium text-gray-700">役割・設定 (システムプロンプト)</label>
-                            <textarea id="personaPrompt" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="例：あなたは冷静な分析家です。データに基づき..."></textarea>
+                            <label for="adminPersonaPrompt" class="block text-sm font-medium text-slate-400">役割・設定</label>
+                            <textarea id="adminPersonaPrompt" rows="3" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 placeholder-slate-400" placeholder="例：あなたは親切な案内役です..."></textarea>
                         </div>
-                        <button id="addPersonaBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold disabled:bg-indigo-400 disabled:cursor-not-allowed">
-                            <span id="addPersonaBtnText">ペルソナを追加</span>
+                        <button id="addAdminPersonaBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-semibold shadow-sm hover:shadow-md transition-shadow">
+                            <span>管理人AIを追加</span>
                         </button>
                     </div>
-                    <hr class="my-4">
-                    <h3 class="text-md font-semibold mb-3 text-gray-600">登録済みペルソナ (クリックで編集)</h3>
-                    <div id="personaList" class="flex flex-wrap gap-2">
-                         <!-- Compact persona chips will be injected here -->
-                    </div>
-                    <hr class="my-4">
-                    <h3 class="text-md font-semibold mb-3 text-gray-600">管理</h3>
+                    <hr class="my-4 border-slate-700">
+                    <h3 class="text-md font-semibold mb-3 text-slate-400">登録済み管理人AI (<span id="adminPersonaCount">0</span>)</h3>
+                    <div id="adminPersonaList" class="flex flex-wrap gap-2"></div>
+                     <hr class="my-4 border-slate-700">
+                    <h3 class="text-md font-semibold mb-3 text-slate-400">管理</h3>
                     <div class="grid grid-cols-3 gap-2">
-                        <button id="importPersonasBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">インポート</button>
-                        <button id="exportPersonasBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">エクスポート</button>
-                        <button id="editJsonBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">JSON編集</button>
+                        <button id="importAdminPersonasBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">インポート</button>
+                        <button id="exportAdminPersonasBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">エクスポート</button>
+                        <button id="editAdminJsonBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">JSON編集</button>
                     </div>
-                     <button id="openRestoreModalBtn" class="mt-2 w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-semibold">バックアップから復元</button>
+                    <button id="openAdminRestoreModalBtn" class="mt-2 w-full bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">バックアップから復元</button>
+                    <input type="file" id="importAdminFileInput" class="hidden" accept=".json">
+                    <div class="mt-6">
+                        <label for="adminAiPersonaSelection" class="block text-sm font-medium text-slate-400">使用する管理人AI</label>
+                        <select id="adminAiPersonaSelection" class="mt-1 block w-full border-slate-600 bg-slate-700 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                           <!-- Options will be populated by JS from admin personas -->
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">スレッド進行のコメントやヘルプチャットで使われるAIの性格を選択します。</p>
+                    </div>
+                </div>
+
+                <!-- Discussion Persona Settings -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-600 pb-2 text-white">議論用AIペルソナ設定 (<span id="personaCount">0</span>)</h2>
+                    <p class="text-sm text-slate-400 mb-4">項目が未入力の場合、AIが自動で補完・生成します。</p>
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label for="personaName" class="block text-sm font-medium text-slate-400">ペルソナ名</label>
+                            <input type="text" id="personaName" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-400" placeholder="例：冷静な分析家">
+                        </div>
+                        <div>
+                            <label for="personaPrompt" class="block text-sm font-medium text-slate-400">役割・設定 (システムプロンプト)</label>
+                            <textarea id="personaPrompt" rows="3" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-400" placeholder="例：あなたは冷静な分析家です。データに基づき..."></textarea>
+                        </div>
+                        <button id="addPersonaBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 focus:ring-offset-slate-900 font-semibold disabled:bg-green-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition-shadow">
+                            <span id="addPersonaBtnText">議論用ペルソナを追加</span>
+                        </button>
+                    </div>
+                    <hr class="my-4 border-slate-700">
+                    <h3 class="text-md font-semibold mb-3 text-slate-400">登録済みペルソナ (クリックで編集)</h3>
+                    <div id="personaList" class="flex flex-wrap gap-2"></div>
+                    <hr class="my-4 border-slate-700">
+                    <h3 class="text-md font-semibold mb-3 text-slate-400">管理</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="importPersonasBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">インポート</button>
+                        <button id="exportPersonasBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">エクスポート</button>
+                        <button id="editJsonBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">JSON編集</button>
+                    </div>
+                     <button id="openRestoreModalBtn" class="mt-2 w-full bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600 text-sm font-semibold">バックアップから復元</button>
                     <input type="file" id="importFileInput" class="hidden" accept=".json">
                 </div>
 
-                <!-- Model Settings -->
-                <div class="bg-white p-6 rounded-lg border border-gray-200">
-                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">共通設定</h2>
+                <!-- Common Settings -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-600 pb-2 text-white">共通設定</h2>
                     <div class="space-y-4">
                          <div>
-                             <label for="settingsModelSelection" class="block text-sm font-medium text-gray-700">使用モデル</label>
-                             <select id="settingsModelSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                             <label for="settingsModelSelection" class="block text-sm font-medium text-slate-400">使用モデル</label>
+                             <select id="settingsModelSelection" class="mt-1 block w-full border-slate-600 bg-slate-700 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash-preview-05-20</option>
                                 <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                                 <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
                              </select>
-                              <p class="text-xs text-gray-500 mt-1">ペルソナ自動生成とスレッドでのレス生成に使用されます。</p>
+                              <p class="text-xs text-slate-500 mt-1">ペルソナ自動生成とスレッドでのレス生成に使用されます。</p>
                         </div>
                         <div>
-                            <label for="apiKeyInput" class="block text-sm font-medium text-gray-700">Gemini APIキー</label>
-                             <input type="password" id="apiKeyInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="APIキーを入力">
-                             <p class="text-xs text-gray-500 mt-1">Flash Preview以外のモデルを使用する場合に必要です。</p>
+                            <label for="apiKeyInput" class="block text-sm font-medium text-slate-400">Gemini APIキー</label>
+                             <input type="password" id="apiKeyInput" class="mt-1 block w-full border-slate-600 bg-slate-700 text-white rounded-lg shadow-sm py-2 px-3 placeholder-slate-400" placeholder="APIキーを入力">
+                             <p class="text-xs text-slate-500 mt-1">Flash Preview以外のモデルを使用する場合に必要です。</p>
                         </div>
                         <div>
-                            <label for="settingsLanguageSelection" class="block text-sm font-medium text-gray-700">デフォルト言語</label>
-                            <select id="settingsLanguageSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <label for="settingsLanguageSelection" class="block text-sm font-medium text-slate-400">デフォルト言語</label>
+                            <select id="settingsLanguageSelection" class="mt-1 block w-full border-slate-600 bg-slate-700 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                                <option value="日本語">日本語</option>
                                <option value="English">English</option>
                                <option value="中文">中文</option>
@@ -216,14 +336,7 @@
                                <option value="हिन्दी">हिन्दी</option>
                                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1">AIが生成するコンテンツのデフォルト言語です。</p>
-                        </div>
-                        <div>
-                            <label for="adminAiPersonaSelection" class="block text-sm font-medium text-gray-700">管理人・ヘルプAI ペルソナ</label>
-                            <select id="adminAiPersonaSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                               <!-- Options will be populated by JS -->
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">スレッド進行のコメントやヘルプチャットで使われるAIの性格を選択します。</p>
+                            <p class="text-xs text-slate-500 mt-1">AIが生成するコンテンツのデフォルト言語です。</p>
                         </div>
                     </div>
                 </div>
@@ -231,52 +344,78 @@
         </div>
     </div>
     <!-- Backdrop -->
-    <div id="menuBackdrop" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden"></div>
+    <div id="menuBackdrop" class="fixed inset-0 bg-black bg-opacity-70 z-40 hidden"></div>
 
     <!-- Edit Persona Modal -->
-    <div id="editPersonaModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 modal-enter max-h-full overflow-y-auto">
+    <div id="editPersonaModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-lg p-6 modal-enter max-h-full overflow-y-auto text-white">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold">ペルソナの編集</h3>
-                <button id="closeEditModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <button id="closeEditModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
             <input type="hidden" id="editPersonaId">
+            <input type="hidden" id="editPersonaType">
             <div class="space-y-4">
                 <div>
-                    <label for="editPersonaName" class="block text-sm font-medium text-gray-700">ペルソナ名</label>
-                    <input type="text" id="editPersonaName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                    <label for="editPersonaName" class="block text-sm font-medium text-slate-300">ペルソナ名</label>
+                    <input type="text" id="editPersonaName" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg shadow-sm py-2 px-3">
                 </div>
                 <div>
-                    <label for="editPersonaPrompt" class="block text-sm font-medium text-gray-700">役割・設定</label>
-                    <textarea id="editPersonaPrompt" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"></textarea>
+                    <label for="editPersonaPrompt" class="block text-sm font-medium text-slate-300">役割・設定</label>
+                    <textarea id="editPersonaPrompt" rows="5" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg shadow-sm py-2 px-3"></textarea>
                 </div>
                 <div class="flex justify-end space-x-3">
-                    <button id="cancelEditBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
-                    <button id="savePersonaBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">変更を保存</button>
+                    <button id="cancelEditBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
+                    <button id="savePersonaBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400">変更を保存</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Edit Personas JSON Modal -->
-    <div id="editJsonModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 modal-enter max-h-[90vh] flex flex-col">
+    <div id="editJsonModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-4xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
             <div class="flex-shrink-0 flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold">ペルソナJSONを直接編集</h3>
-                <button id="closeJsonModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <h3 class="text-xl font-semibold">議論用ペルソナJSONを直接編集</h3>
+                <button id="closeJsonModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
             <div class="flex-grow min-h-0 overflow-auto">
-                <textarea id="personasJsonTextarea" class="w-full h-full border border-gray-300 rounded-md shadow-sm p-2 font-mono text-sm resize-none" placeholder="ここにペルソナのJSONデータを貼り付けます..."></textarea>
+                <textarea id="personasJsonTextarea" class="w-full h-full bg-slate-900 border-slate-700 rounded-lg shadow-sm p-2 font-mono text-sm resize-none" placeholder="ここに議論用ペルソナのJSONデータを貼り付けます..."></textarea>
             </div>
             <div class="flex-shrink-0 pt-2">
-                <div id="jsonError" class="text-red-600 text-sm h-4 mb-2"></div>
+                <div id="jsonError" class="text-red-400 text-sm h-4 mb-2"></div>
                 <div class="flex justify-between items-center">
                     <div>
-                        <button id="formatJsonBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">フォーマット</button>
+                        <button id="formatJsonBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600">フォーマット</button>
                     </div>
                     <div class="space-x-3">
-                        <button id="cancelJsonEditBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
-                        <button id="saveJsonBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">変更を保存</button>
+                        <button id="cancelJsonEditBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
+                        <button id="saveJsonBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">変更を保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Admin Personas JSON Modal -->
+    <div id="editAdminJsonModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-4xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">管理人・ヘルプAIのJSONを直接編集</h3>
+                <button id="closeAdminJsonModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="flex-grow min-h-0 overflow-auto">
+                <textarea id="adminPersonasJsonTextarea" class="w-full h-full bg-slate-900 border-slate-700 rounded-lg shadow-sm p-2 font-mono text-sm resize-none" placeholder="ここに管理人AIのJSONデータを貼り付けます..."></textarea>
+            </div>
+            <div class="flex-shrink-0 pt-2">
+                <div id="adminJsonError" class="text-red-400 text-sm h-4 mb-2"></div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <button id="formatAdminJsonBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600">フォーマット</button>
+                    </div>
+                    <div class="space-x-3">
+                        <button id="cancelAdminJsonEditBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
+                        <button id="saveAdminJsonBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed">変更を保存</button>
                     </div>
                 </div>
             </div>
@@ -284,95 +423,123 @@
     </div>
 
     <!-- Restore Backup Modal -->
-    <div id="restoreBackupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 modal-enter max-h-[90vh] flex flex-col">
+    <div id="restoreBackupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-2xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
             <div class="flex-shrink-0 flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold">バックアップから復元</h3>
-                <button id="closeRestoreModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <button id="closeRestoreModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
-            <p class="text-sm text-gray-600 mb-4">過去のペルソナリストの状態に戻すことができます。現在のリストは上書きされます。</p>
-            <div id="backupListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-gray-200 -mx-6 px-6 py-2">
+            <p class="text-sm text-slate-400 mb-4">過去のペルソナリストの状態に戻すことができます。現在のリストは上書きされます。</p>
+            <div id="backupListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-slate-700 -mx-6 px-6 py-2">
                 <!-- Backup items will be injected here -->
             </div>
             <div class="flex-shrink-0 flex justify-end pt-4">
-                <button id="cancelRestoreBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">閉じる</button>
+                <button id="cancelRestoreBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Admin Backup Modal -->
+    <div id="restoreAdminBackupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-2xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">管理人AIのバックアップから復元</h3>
+                <button id="closeAdminRestoreModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-sm text-slate-400 mb-4">過去の管理人AIリストの状態に戻すことができます。現在のリストは上書きされます。</p>
+            <div id="adminBackupListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-slate-700 -mx-6 px-6 py-2">
+                <!-- Admin Backup items will be injected here -->
+            </div>
+            <div class="flex-shrink-0 flex justify-end pt-4">
+                <button id="cancelAdminRestoreBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600">閉じる</button>
             </div>
         </div>
     </div>
     
     <!-- Thread List Modal -->
-    <div id="threadListModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col">
+    <div id="threadListModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
             <div class="flex-shrink-0 flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold">保存されたスレッド</h3>
-                <button id="closeThreadListModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <button id="closeThreadListModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
-            <div id="threadListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-gray-200 -mx-6 px-6 py-2">
+            <div id="threadListContainer" class="flex-grow min-h-0 overflow-y-auto border-t border-b border-slate-700 -mx-6 px-6 py-2">
                 <!-- Thread items will be injected here -->
             </div>
             <div class="flex-shrink-0 flex justify-end pt-4">
-                <button id="cancelThreadListBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">閉じる</button>
+                <button id="cancelThreadListBtn" class="bg-slate-700 text-slate-300 py-2 px-4 rounded-lg hover:bg-slate-600">閉じる</button>
             </div>
         </div>
     </div>
 
 
     <!-- Confirmation Modal -->
-    <div id="confirmationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-60 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 modal-enter">
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-sm p-6 modal-enter text-white">
             <h3 class="text-lg font-semibold mb-2" id="confirmTitle">本当に実行しますか？</h3>
-            <p class="text-gray-600 mb-4" id="confirmMessage">この操作は元に戻せません。</p>
+            <p class="text-slate-400 mb-4" id="confirmMessage">この操作は元に戻せません。</p>
             <div class="flex justify-end space-x-3">
-                <button id="cancelConfirmBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
-                <button id="confirmActionBtn" class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700">実行する</button>
+                <button id="cancelConfirmBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
+                <button id="confirmActionBtn" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">実行する</button>
             </div>
         </div>
     </div>
 
 
     <!-- Help Modal -->
-    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col">
-            <div class="flex-shrink-0 flex justify-between items-center mb-4 border-b pb-3">
+    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-3xl p-6 modal-enter max-h-[90vh] flex flex-col text-white">
+            <div class="flex-shrink-0 flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h3 class="text-2xl font-semibold flex items-center">
-                    <svg class="w-7 h-7 mr-2 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <svg class="w-7 h-7 mr-2 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
                     </svg>
                     ヘルプ
                 </h3>
-                <button id="closeHelpModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <button id="closeHelpModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
             <!-- Tabs -->
-            <div class="flex-shrink-0 border-b border-gray-200">
+            <div class="flex-shrink-0 border-b border-slate-700">
                 <nav class="-mb-px flex space-x-4" aria-label="Tabs">
-                    <button id="helpTabGuide" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">使い方ガイド</button>
-                    <button id="helpTabChat" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">AIに質問</button>
+                    <button id="helpTabGuide" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-400">使い方ガイド</button>
+                    <button id="helpTabChat" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500">AIに質問</button>
                 </nav>
             </div>
             
             <!-- Guide Panel -->
-            <div id="helpPanelGuide" class="flex-grow min-h-0 overflow-y-auto pr-2 space-y-6 pt-4">
+            <div id="helpPanelGuide" class="flex-grow min-h-0 overflow-y-auto pr-2 space-y-6 pt-4 text-slate-300">
                 <section>
-                    <h4 class="text-lg font-bold text-gray-800 mb-2">1. AIペルソナの準備</h4>
-                    <p class="text-gray-600 ml-4">まず、議論に参加するAIの「ペルソナ」を作成します。<br>
-                    左上のメニューアイコン <svg class="inline-block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> から設定を開き、ペルソナ名や役割を入力して「ペルソナを追加」ボタンを押してください。名前や役割を空欄にするとAIが自動で考えてくれます。議論には最低2体のペルソナが必要です。</p>
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">1. ２種類のAIペルソナを準備</h4>
+                    <p class="ml-4">このアプリには2種類のAIがいます。設定画面でそれぞれ準備してください。<br>
+                    左上のメニューアイコン <svg class="inline-block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> から設定を開きます。</p>
+                    <ul class="list-disc ml-8 space-y-2 mt-2">
+                        <li>
+                            <strong>管理人・ヘルプAI：</strong>
+                            議論の司会進行や、ヘルプチャットでの応答を担当するAIです。「管理人・ヘルプAI設定」でペルソナを作成し、「共通設定」で使用するペルソナを選択します。
+                        </li>
+                        <li>
+                            <strong>議論用AIペルソナ：</strong>
+                            スレッド内で実際に意見を交わすAIです。「議論用AIペルソナ設定」で作成します。議論を開始するには、最低2体の議論用ペルソナが必要です。
+                        </li>
+                    </ul>
+                    <p class="ml-4 mt-2">どちらのペルソナも、名前や役割を空欄にして追加ボタンを押すと、AIが内容を自動で考えてくれます。</p>
                 </section>
                  <section>
-                    <h4 class="text-lg font-bold text-gray-800 mb-2">2. スレッドの作成</h4>
-                    <p class="text-gray-600 ml-4">次に、議論の場となる「スレッド」を作成します。<br>
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">2. スレッドの作成</h4>
+                    <p class="ml-4">次に、議論の場となる「スレッド」を作成します。<br>
                     右上の「スレッド操作」ボタンから「新しいスレッドを作成」を選びます。タイトルと最初の投稿内容を入力し、議論に参加するAIのレス数などを設定して「議論を開始！」ボタンを押すと、自動で議論が始まります。</p>
                 </section>
                 <section>
-                    <h4 class="text-lg font-bold text-gray-800 mb-2">便利な機能：ソースからの自動生成</h4>
-                    <p class="text-gray-600 ml-4">WebサイトのURLやテキストを基に、スレッドのタイトルと最初の投稿をAIに自動生成させることもできます。新しいスレッド作成画面でURLやテキストを入力し、「ソースからスレッド内容を生成」ボタンを押してください。</p>
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">便利な機能：ソースからの自動生成</h4>
+                    <p class="ml-4">WebサイトのURLやテキストを基に、スレッドのタイトルと最初の投稿をAIに自動生成させることもできます。新しいスレッド作成画面でURLやテキストを入力し、「ソースからスレッド内容を生成」ボタンを押してください。</p>
                 </section>
                  <section>
-                    <h4 class="text-lg font-bold text-gray-800 mb-2">3. 議論のコントロール</h4>
-                    <p class="text-gray-600 ml-4">AIによるレスの自動生成が始まると、スレッドの下部にコントロールパネルが表示されます。「一時停止」で生成を止めたり、「再開」したり、「停止」して議論を終了させることができます。</p>
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">3. 議論のコントロール</h4>
+                    <p class="ml-4">AIによるレスの自動生成が始まると、スレッドの下部にコントロールパネルが表示されます。「一時停止」で生成を止めたり、「再開」したり、「停止」して議論を終了させることができます。</p>
                 </section>
                  <section>
-                    <h4 class="text-lg font-bold text-gray-800 mb-2">4. データの保存と管理</h4>
-                    <ul class="list-disc ml-8 text-gray-600 space-y-1">
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">4. データの保存と管理</h4>
+                    <ul class="list-disc ml-8 space-y-1">
                         <li><strong>スレッドの保存：</strong> 作成されたスレッドは自動的にブラウザに保存されます。「スレッド操作」→「保存したスレッドを開く」からいつでも過去のスレッドを読み込めます。</li>
                         <li><strong>ペルソナの管理：</strong> 作成したペルソナも自動で保存されます。設定メニューの「インポート」「エクスポート」で、ペルソナデータをファイルとして保存したり、読み込んだりできます。</li>
                         <li><strong>スレッドのエクスポート：</strong>「スレッド操作」メニューから、表示中のスレッドをJSONファイルや画像としてダウンロードできます。</li>
@@ -386,17 +553,17 @@
                     <!-- Chat messages will be appended here -->
                 </div>
                 <div id="aiTypingIndicator" class="hidden flex items-center p-4">
-                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">AI</div>
+                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">AI</div>
                     <div class="ml-3 flex items-center space-x-1">
-                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span class="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></span>
+                        <span class="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="h-2 w-2 bg-slate-400 rounded-full animate-bounce"></span>
                     </div>
                 </div>
-                <div class="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
+                <div class="flex-shrink-0 p-4 border-t border-slate-700 bg-slate-800/50">
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="chatInput" class="flex-grow border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="質問を入力してください...">
-                        <button id="chatSendBtn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <input type="text" id="chatInput" class="flex-grow bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400" placeholder="質問を入力してください...">
+                        <button id="chatSendBtn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-900">
                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.949a.75.75 0 00.95.826L11.25 9.25v1.5l-7.14 1.428a.75.75 0 00-.95.826l1.414 4.949a.75.75 0 00.95.826l12.237-4.37a.75.75 0 000-1.406L3.105 2.289z" /></svg>
                         </button>
                     </div>
@@ -408,23 +575,23 @@
 
 
     <!-- Create Thread Modal -->
-    <div id="createThreadModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 modal-enter max-h-full overflow-y-auto">
+    <div id="createThreadModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-70 p-4">
+        <div class="glass-effect rounded-xl shadow-xl w-full max-w-3xl p-6 modal-enter max-h-full overflow-y-auto text-white">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold">新しいスレッドを作成</h3>
-                <button id="closeCreateThreadModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <button id="closeCreateThreadModalBtn" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
             <div class="space-y-4">
                 <!-- Source Generation Section -->
-                <div class="p-4 bg-gray-50 rounded-lg border">
-                    <h4 class="text-md font-semibold text-gray-800 mb-2">ソースから自動生成</h4>
+                <div class="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                    <h4 class="text-md font-semibold text-slate-200 mb-2">ソースから自動生成</h4>
                     
                     <!-- Tabs -->
                     <div class="mb-3">
-                        <div class="border-b border-gray-200">
+                        <div class="border-b border-slate-700">
                             <nav class="-mb-px flex space-x-4" aria-label="Tabs">
-                                <button id="tabUrl" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">URL</button>
-                                <button id="tabText" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">テキスト</button>
+                                <button id="tabUrl" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-400 text-indigo-400">URL</button>
+                                <button id="tabText" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500">テキスト</button>
                             </nav>
                         </div>
                     </div>
@@ -432,25 +599,25 @@
                     <div class="space-y-3">
                         <!-- URL Panel -->
                         <div id="tabPanelUrl">
-                            <label for="newArticleUrl" class="block text-sm font-medium text-gray-700">記事のURL</label>
+                            <label for="newArticleUrl" class="block text-sm font-medium text-slate-300">記事のURL</label>
                             <div class="flex space-x-2">
-                                <input type="url" id="newArticleUrl" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="https://example.com/news/...">
-                                <button id="addUrlBtn" class="mt-1 bg-gray-200 text-gray-700 px-3 rounded-md hover:bg-gray-300 font-bold">追加</button>
+                                <input type="url" id="newArticleUrl" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 placeholder-slate-400" placeholder="https://example.com/news/...">
+                                <button id="addUrlBtn" class="mt-1 bg-slate-600 text-slate-200 px-3 rounded-lg hover:bg-slate-500 font-bold">追加</button>
                             </div>
                             <div id="urlListContainer" class="space-y-2 mt-2"></div>
                         </div>
                         
                         <!-- Text Panel -->
                         <div id="tabPanelText" class="hidden">
-                             <label for="sourceText" class="block text-sm font-medium text-gray-700">記事・テキストを貼り付け</label>
-                             <textarea id="sourceText" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="ここにテキストを貼り付けてください..."></textarea>
+                             <label for="sourceText" class="block text-sm font-medium text-slate-300">記事・テキストを貼り付け</label>
+                             <textarea id="sourceText" rows="5" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 placeholder-slate-400" placeholder="ここにテキストを貼り付けてください..."></textarea>
                         </div>
                         
                         <div>
-                            <label for="generatorPersona" class="block text-sm font-medium text-gray-700">生成するペルソナ</label>
-                            <select id="generatorPersona" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select>
+                            <label for="generatorPersona" class="block text-sm font-medium text-slate-300">生成するペルソナ</label>
+                            <select id="generatorPersona" class="mt-1 block w-full border-slate-600 bg-slate-700 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select>
                         </div>
-                        <button id="generateFromSourceBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center font-semibold disabled:bg-blue-400 disabled:cursor-not-allowed">
+                        <button id="generateFromSourceBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center font-semibold disabled:bg-blue-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition-shadow">
                             <span id="generateBtnText">ソースからスレッド内容を生成</span>
                         </button>
                     </div>
@@ -458,25 +625,25 @@
 
                 <div class="relative py-2">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div class="w-full border-t border-gray-300"></div>
+                        <div class="w-full border-t border-slate-700"></div>
                     </div>
                     <div class="relative flex justify-center">
-                        <span class="bg-white px-2 text-sm text-gray-500">または</span>
+                        <span class="bg-slate-800 px-2 text-sm text-slate-400">または</span>
                     </div>
                 </div>
 
                 <!-- Manual Input Section -->
                 <div>
-                    <label for="threadTitle" class="block text-sm font-medium text-gray-700">スレッドタイトル</label>
-                    <input type="text" id="threadTitle" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="AIは人間を超えるか？">
+                    <label for="threadTitle" class="block text-sm font-medium text-slate-300">スレッドタイトル</label>
+                    <input type="text" id="threadTitle" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400" placeholder="AIは人間を超えるか？">
                 </div>
                 <div>
-                    <label for="threadBody" class="block text-sm font-medium text-gray-700">本文 (最初の投稿)</label>
-                    <textarea id="threadBody" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="シンギュラリティについて、様々な観点から議論したい。"></textarea>
+                    <label for="threadBody" class="block text-sm font-medium text-slate-300">本文 (最初の投稿)</label>
+                    <textarea id="threadBody" rows="4" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400" placeholder="シンギュラリティについて、様々な観点から議論したい。"></textarea>
                 </div>
                 <div>
-                    <label for="threadLanguageSelection" class="block text-sm font-medium text-gray-700">スレッドの言語</label>
-                    <select id="threadLanguageSelection" class="mt-1 block w-full border border-gray-300 bg-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <label for="threadLanguageSelection" class="block text-sm font-medium text-slate-300">スレッドの言語</label>
+                    <select id="threadLanguageSelection" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         <option value="日本語">日本語</option>
                         <option value="English">English</option>
                         <option value="中文">中文</option>
@@ -494,90 +661,104 @@
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div class="col-span-1">
-                        <label for="maxResponses" class="block text-sm font-medium text-gray-700">レス停止数</label>
-                        <input type="number" id="maxResponses" value="5" min="1" max="50" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        <label for="maxResponses" class="block text-sm font-medium text-slate-300">レス停止数</label>
+                        <input type="number" id="maxResponses" value="5" min="1" max="50" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3">
                     </div>
                     <div class="col-span-1">
-                        <label for="referenceCount" class="block text-sm font-medium text-gray-700">AI文脈参照数</label>
-                        <input type="number" id="referenceCount" value="5" min="1" max="50" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        <label for="referenceCount" class="block text-sm font-medium text-slate-300">AI文脈参照数</label>
+                        <input type="number" id="referenceCount" value="5" min="1" max="50" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3">
                     </div>
                     <div class="col-span-1">
-                        <label for="responseLength" class="block text-sm font-medium text-gray-700">最大文字数</label>
-                        <input type="number" id="responseLength" value="80" min="10" max="500" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        <label for="responseLength" class="block text-sm font-medium text-slate-300">最大文字数</label>
+                        <input type="number" id="responseLength" value="30" min="10" max="500" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3 pt-2">
-                    <button id="cancelCreateThreadBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300">キャンセル</button>
-                    <button id="startThreadBtn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 font-bold">議論を開始！</button>
+                    <button id="cancelCreateThreadBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
+                    <button id="startThreadBtn" class="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-bold shadow-sm hover:shadow-md transition-shadow">議論を開始！</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+    <div class="p-4 md:p-8 pl-24 md:pl-28">
         <div class="grid grid-cols-1 gap-8">
             <!-- Main Column: Thread Display -->
-            <div id="threadParent" class="bg-[#F0F0F0] p-4 border-2 border-gray-400">
+            <main id="threadParent" class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-700 shadow-2xl shadow-slate-900/50">
                 
                 <!-- Thread Index View -->
-                <div id="threadIndexContainer">
-                    <div class="mb-4">
-                        <h3 class="text-xl font-semibold mb-3">スレッド一覧</h3>
+                <div id="threadIndexContainer" class="container mx-auto max-w-4xl">
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-semibold mb-4 text-white">スレッド一覧</h3>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <input type="text" id="searchInput" class="flex-grow border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="キーワードでスレッドタイトルを検索...">
-                            <button id="searchBtn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold">検索</button>
-                            <button id="aiSearchBtn" class="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 flex items-center justify-center font-semibold disabled:bg-purple-400">
+                            <input type="text" id="searchInput" class="flex-grow bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-400" placeholder="キーワードでスレッドタイトルを検索...">
+                            <button id="searchBtn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold shadow-sm hover:shadow-md transition-shadow">検索</button>
+                            <button id="aiSearchBtn" class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center font-semibold disabled:bg-purple-400 shadow-sm hover:shadow-md transition-shadow">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
                                 <span id="aiSearchBtnText">AI検索</span>
                             </button>
                         </div>
                     </div>
-                    <div id="threadIndexList" class="space-y-2">
+                    <div id="threadIndexList" class="space-y-3">
                         <!-- Thread index items will be injected here -->
                     </div>
                 </div>
 
                 <!-- Single Thread View -->
-                <div id="threadDisplayContainer" class="hidden">
-                    <div id="threadHeader" class="pb-2 mb-2">
-                         <h2 class="text-2xl font-semibold">掲示板</h2>
+                <div id="threadDisplayContainer" class="hidden container mx-auto max-w-4xl">
+                    <div id="threadHeader" class="pb-4 mb-4 border-b border-slate-700">
+                         <h2 class="text-2xl font-semibold text-white">掲示板</h2>
                     </div>
 
-                    <div id="threadContainer" class="space-y-3">
+                    <div id="threadContainer" class="space-y-4">
                          <!-- Welcome message moved and will be handled by JS -->
                     </div>
                      <!-- Generation Controls -->
-                    <div id="generationControls" class="hidden items-center justify-between mt-4 p-2 bg-gray-200/50 rounded-md">
-                        <div id="generationStatus" class="flex items-center space-x-2 flex-grow min-w-0">
+                    <div id="generationControls" class="hidden items-center justify-between mt-4 p-3 bg-slate-700/50 rounded-lg">
+                        <div id="generationStatus" class="flex items-center space-x-3 flex-grow min-w-0">
                             <div class="loader flex-shrink-0"></div>
                             <div class="flex-grow min-w-0">
-                                <span id="generationStatusText" class="text-gray-700 font-medium block truncate">AIがレスを生成中...</span>
-                                <p id="adminAiReasoning" class="text-sm text-gray-500 mt-1 italic truncate"></p>
+                                <span id="generationStatusText" class="text-slate-300 font-medium block truncate">AIがレスを生成中...</span>
+                                <p id="adminAiReasoning" class="text-sm text-slate-400 mt-1 italic truncate"></p>
                             </div>
                         </div>
                         <div id="pausedControls" class="hidden items-center space-x-2">
-                            <label for="continueMaxResponses" class="text-sm">レス停止数:</label>
-                            <input type="number" id="continueMaxResponses" class="w-20 border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
+                            <label for="continueMaxResponses" class="text-sm text-slate-300">レス停止数:</label>
+                            <input type="number" id="continueMaxResponses" class="w-20 bg-slate-600 border-slate-500 text-white rounded-md shadow-sm py-1 px-2 text-sm">
                         </div>
                         <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
-                            <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm">一時停止</button>
-                            <button id="stopBtn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">停止</button>
+                            <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm font-semibold">一時停止</button>
+                            <button id="stopBtn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm font-semibold">停止</button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     </div>
 
 <script>
 // --- Element Declarations ---
 const personaNameInput = document.getElementById('personaName');
-// ... (rest of persona and modal elements are the same)
 const personaPromptInput = document.getElementById('personaPrompt');
 const addPersonaBtn = document.getElementById('addPersonaBtn');
 const addPersonaBtnText = document.getElementById('addPersonaBtnText');
 const personaList = document.getElementById('personaList');
 const personaCount = document.getElementById('personaCount');
+
+const adminPersonaNameInput = document.getElementById('adminPersonaName');
+const adminPersonaPromptInput = document.getElementById('adminPersonaPrompt');
+const addAdminPersonaBtn = document.getElementById('addAdminPersonaBtn');
+const adminPersonaList = document.getElementById('adminPersonaList');
+const adminPersonaCount = document.getElementById('adminPersonaCount');
+
+// Admin Persona Management
+const importAdminPersonasBtn = document.getElementById('importAdminPersonasBtn');
+const exportAdminPersonasBtn = document.getElementById('exportAdminPersonasBtn');
+const editAdminJsonBtn = document.getElementById('editAdminJsonBtn');
+const openAdminRestoreModalBtn = document.getElementById('openAdminRestoreModalBtn');
+const importAdminFileInput = document.getElementById('importAdminFileInput');
+
+
 const threadTitleInput = document.getElementById('threadTitle');
 const threadBodyInput = document.getElementById('threadBody');
 const maxResponsesInput = document.getElementById('maxResponses');
@@ -613,6 +794,7 @@ const closeEditModalBtn = document.getElementById('closeEditModalBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
 const savePersonaBtn = document.getElementById('savePersonaBtn');
 const editPersonaId = document.getElementById('editPersonaId');
+const editPersonaType = document.getElementById('editPersonaType');
 const editPersonaName = document.getElementById('editPersonaName');
 const editPersonaPrompt = document.getElementById('editPersonaPrompt');
 
@@ -626,12 +808,28 @@ const personasJsonTextarea = document.getElementById('personasJsonTextarea');
 const jsonError = document.getElementById('jsonError');
 const formatJsonBtn = document.getElementById('formatJsonBtn');
 
+// Edit Admin JSON Modal Elements
+const editAdminJsonModal = document.getElementById('editAdminJsonModal');
+const closeAdminJsonModalBtn = document.getElementById('closeAdminJsonModalBtn');
+const cancelAdminJsonEditBtn = document.getElementById('cancelAdminJsonEditBtn');
+const saveAdminJsonBtn = document.getElementById('saveAdminJsonBtn');
+const adminPersonasJsonTextarea = document.getElementById('adminPersonasJsonTextarea');
+const adminJsonError = document.getElementById('adminJsonError');
+const formatAdminJsonBtn = document.getElementById('formatAdminJsonBtn');
+
 // Restore Backup Modal Elements
 const restoreBackupModal = document.getElementById('restoreBackupModal');
 const openRestoreModalBtn = document.getElementById('openRestoreModalBtn');
 const closeRestoreModalBtn = document.getElementById('closeRestoreModalBtn');
 const cancelRestoreBtn = document.getElementById('cancelRestoreBtn');
 const backupListContainer = document.getElementById('backupListContainer');
+
+// Restore Admin Backup Modal Elements
+const restoreAdminBackupModal = document.getElementById('restoreAdminBackupModal');
+const closeAdminRestoreModalBtn = document.getElementById('closeAdminRestoreModalBtn');
+const cancelAdminRestoreBtn = document.getElementById('cancelAdminRestoreBtn');
+const adminBackupListContainer = document.getElementById('adminBackupListContainer');
+
 
 // Thread List Modal Elements
 const threadListModal = document.getElementById('threadListModal');
@@ -701,7 +899,8 @@ const aiTypingIndicator = document.getElementById('aiTypingIndicator');
 
 // --- State ---
 let personas = [];
-let discussionPersonas = [];
+let adminPersonas = [];
+let currentDiscussionPersonas = [];
 let threads = [];
 let currentThread = null;
 let currentThreadId = null;
@@ -718,12 +917,23 @@ let discussionLanguage = '日本語';
 const ADMIN_AI_UID = 'ADMIN_AI';
 const DEFAULT_ADMIN_UID = 'default-marunouchi-ol-assistant-uid';
 let jsonEditor = null; // CodeMirror instance
+let adminJsonEditor = null; // CodeMirror instance for admin personas
 let backups = [];
+let adminBackups = [];
 const PERSONA_BACKUP_STORAGE_KEY = 'ai-bulletin-board-personas-backups';
+const ADMIN_PERSONA_BACKUP_STORAGE_KEY = 'ai-bulletin-board-admin-personas-backups';
 const MAX_BACKUPS = 10;
 let confirmationCallback = null;
 const THREAD_STORAGE_KEY = 'ai-bulletin-board-threads';
 const SETTINGS_STORAGE_KEY = 'ai-bulletin-board-settings';
+
+// --- Configure Markdown Parser ---
+marked.setOptions({
+    gfm: true,
+    breaks: true,
+    mangle: false,
+    headerIds: false,
+});
 
 
 // --- Menu Logic ---
@@ -758,6 +968,7 @@ function closeHelpModal() {
 
 // --- Persona Management & Backups ---
 const PERSONA_STORAGE_KEY = 'ai-bulletin-board-personas';
+const ADMIN_PERSONA_STORAGE_KEY = 'ai-bulletin-board-admin-personas';
 
 function saveSettingsToLocal() {
     const settings = {
@@ -782,13 +993,16 @@ function loadSettingsFromLocal() {
             apiKeyInput.value = settings.apiKey || '';
             settingsLanguageSelection.value = settings.language || '日本語';
             
-            const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+            const defaultAdminPersona = adminPersonas.find(p => p.uid === DEFAULT_ADMIN_UID);
             const defaultAdminId = defaultAdminPersona ? defaultAdminPersona.id : null;
             
-            adminAiPersonaSelection.value = settings.adminAiPersonaId || defaultAdminId;
+            // Check if the saved admin ID still exists
+            const savedAdminExists = adminPersonas.some(p => p.id.toString() === settings.adminAiPersonaId);
+            adminAiPersonaSelection.value = savedAdminExists ? settings.adminAiPersonaId : defaultAdminId;
+
         } else {
              // Set default for first-time users
-            const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+            const defaultAdminPersona = adminPersonas.find(p => p.uid === DEFAULT_ADMIN_UID);
             if (defaultAdminPersona) {
                 adminAiPersonaSelection.value = defaultAdminPersona.id;
             }
@@ -802,7 +1016,15 @@ function savePersonasToLocal() {
     try {
         localStorage.setItem(PERSONA_STORAGE_KEY, JSON.stringify(personas));
     } catch (e) {
-        console.error("Failed to save personas to localStorage", e);
+        console.error("Failed to save discussion personas to localStorage", e);
+    }
+}
+
+function saveAdminPersonasToLocal() {
+     try {
+        localStorage.setItem(ADMIN_PERSONA_STORAGE_KEY, JSON.stringify(adminPersonas));
+    } catch (e) {
+        console.error("Failed to save admin personas to localStorage", e);
     }
 }
 
@@ -818,8 +1040,38 @@ function loadPersonasFromLocal() {
     }
 }
 
+function loadAdminPersonasFromLocal() {
+    try {
+        const saved = localStorage.getItem(ADMIN_PERSONA_STORAGE_KEY);
+        if (saved) {
+            adminPersonas = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error("Failed to load admin personas from localStorage", e);
+        adminPersonas = [];
+    }
+}
+
+// One-time migration for existing users
+function migrateAdminPersona() {
+    const adminInMainList = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+    const adminInAdminList = adminPersonas.find(p => p.uid === DEFAULT_ADMIN_UID);
+
+    if (adminInMainList && !adminInAdminList) {
+        adminPersonas.push(adminInMainList);
+        personas = personas.filter(p => p.uid !== DEFAULT_ADMIN_UID);
+        
+        savePersonasToLocal();
+        saveAdminPersonasToLocal();
+        console.log("Successfully migrated default admin persona.");
+    }
+}
+
+
 function ensureDefaultAdminPersona() {
-    const exists = personas.some(p => p.uid === DEFAULT_ADMIN_UID);
+    if (adminPersonas.length > 0) return; // Only run if no admin personas exist at all
+
+    const exists = adminPersonas.some(p => p.uid === DEFAULT_ADMIN_UID);
     if (!exists) {
         const defaultAdmin = {
             id: Date.now(),
@@ -828,9 +1080,46 @@ function ensureDefaultAdminPersona() {
             emoji: '🎀',
             uid: DEFAULT_ADMIN_UID
         };
-        personas.unshift(defaultAdmin); // Add to the beginning of the list
-        savePersonasToLocal();
+        adminPersonas.unshift(defaultAdmin); // Add to the beginning of the list
+        saveAdminPersonasToLocal();
     }
+}
+
+function ensureDefaultDiscussionPersonas() {
+    const defaultDiscussionPersonas = [
+        {
+            id: 1672531201003,
+            name: 'パンツ一丁お姉さん',
+            prompt: '細かいことは気にしない、自由奔放なご近所のお姉さん。物事の本質を突くような、突拍子もない意見を言うことが多い。夏はもっぱらパンツ一丁で過ごしているため、思考も非常にシンプルかつ大胆。',
+            emoji: '☀️',
+            uid: 'default-underwear-neighbor-uid'
+        },
+        {
+            id: 1672531201002,
+            name: '弟くん大好きお姉ちゃん',
+            prompt: 'すべての話題を「うちの弟くんならどう思うかな？」という視点で語る、弟くんを溺愛するお姉ちゃん。弟くんのためならどんな意見にも全力で反論する。時々話が脱線しがち。',
+            emoji: '🥰',
+            uid: 'default-doting-sister-uid'
+        },
+        {
+            id: 1672531201001,
+            name: '丸の内OLちゃん',
+            prompt: '丁寧な言葉遣いとは裏腹に、最新のトレンドや経済ニュースには敏感で、鋭い視点で議論に切り込む。ランチはパスタが好き。',
+            emoji: '👠',
+            uid: 'default-marunouchi-ol-uid'
+        }
+    ];
+
+    let added = false;
+    defaultDiscussionPersonas.forEach(defaultPersona => {
+        const exists = personas.some(p => p.uid === defaultPersona.uid);
+        if (!exists) {
+            personas.unshift(defaultPersona); // Add to the beginning of the list
+            added = true;
+        }
+    });
+    // Return true if personas were added, to indicate a save is needed
+    return added;
 }
 
 
@@ -877,127 +1166,222 @@ function createBackup() {
     saveBackupsToLocal();
 }
 
-async function addPersona() {
-    let name = personaNameInput.value.trim();
-    let prompt = personaPromptInput.value.trim();
+function saveAdminBackupsToLocal() {
+    try {
+        localStorage.setItem(ADMIN_PERSONA_BACKUP_STORAGE_KEY, JSON.stringify(adminBackups));
+    } catch(e) {
+        console.error("Failed to save admin backups to localStorage", e);
+    }
+}
 
-    addPersonaBtn.disabled = true;
-    addPersonaBtnText.textContent = 'AIが生成中...';
+function loadAdminBackupsFromLocal() {
+    try {
+        const savedBackups = localStorage.getItem(ADMIN_PERSONA_BACKUP_STORAGE_KEY);
+        if (savedBackups) {
+            adminBackups = JSON.parse(savedBackups);
+        }
+    } catch (e) {
+        console.error("Failed to load admin backups from localStorage", e);
+        adminBackups = [];
+    }
+}
+
+function createAdminBackup() {
+    const backupData = JSON.parse(JSON.stringify(adminPersonas)); // Deep copy
+    
+    if (adminBackups.length > 0) {
+        const latestBackup = adminBackups[0];
+        if (JSON.stringify(latestBackup.data) === JSON.stringify(backupData)) {
+            return; 
+        }
+    }
+
+    const newBackup = {
+        timestamp: Date.now(),
+        count: backupData.length,
+        data: backupData
+    };
+
+    adminBackups.unshift(newBackup); 
+    if (adminBackups.length > MAX_BACKUPS) {
+        adminBackups.pop(); 
+    }
+    saveAdminBackupsToLocal();
+}
+
+
+async function addPersona(isAdmin = false) {
+    const nameInput = isAdmin ? adminPersonaNameInput : personaNameInput;
+    const promptInput = isAdmin ? adminPersonaPromptInput : personaPromptInput;
+    const button = isAdmin ? addAdminPersonaBtn : addPersonaBtn;
+    const buttonTextEl = isAdmin ? button.querySelector('span') : addPersonaBtnText;
+
+    let name = nameInput.value.trim();
+    let prompt = promptInput.value.trim();
+
+    button.disabled = true;
+    const originalBtnText = buttonTextEl.textContent;
+    buttonTextEl.textContent = 'AIが生成中...';
     const selectedModel = settingsModelSelection.value;
 
     try {
         if (!name && !prompt) {
-            const { personaName, personaPrompt } = await generateRandomPersona(selectedModel);
-            name = personaName;
-            prompt = personaPrompt;
+            let personaData;
+            if (isAdmin) {
+                personaData = await generateAdminPersona(selectedModel);
+            } else {
+                personaData = await generateRandomPersona(selectedModel);
+            }
+            name = personaData.personaName;
+            prompt = personaData.personaPrompt;
         } else if (!name) {
             name = await generatePersonaName(prompt, selectedModel);
         } else if (!prompt) {
-            prompt = await generatePersonaPrompt(name, selectedModel);
+            if (isAdmin) {
+                prompt = await generateAdminPersonaPrompt(name, selectedModel);
+            } else {
+                prompt = await generatePersonaPrompt(name, selectedModel);
+            }
         }
 
         const emoji = await getEmojiForPersona(name, prompt, selectedModel);
         const uid = crypto.randomUUID().slice(0, 8);
         const newPersona = { id: Date.now(), name, prompt, emoji, uid };
-        personas.push(newPersona);
-
-        personaNameInput.value = '';
-        personaPromptInput.value = '';
-        personaNameInput.focus();
         
-        createBackup();
-        savePersonasToLocal();
-        renderPersonas();
+        if (isAdmin) {
+            adminPersonas.push(newPersona);
+            createAdminBackup();
+            saveAdminPersonasToLocal();
+            renderAdminPersonas();
+        } else {
+            personas.push(newPersona);
+            createBackup();
+            savePersonasToLocal();
+            renderPersonas();
+        }
+        nameInput.value = '';
+        promptInput.value = '';
+        nameInput.focus();
 
     } catch (error) {
         alert(`ペルソナの生成に失敗しました: ${error.message}`);
     } finally {
-        addPersonaBtn.disabled = false;
-        addPersonaBtnText.textContent = 'ペルソナを追加';
+        button.disabled = false;
+        buttonTextEl.textContent = originalBtnText;
     }
 }
 
-function removePersona(id) {
-    event.stopPropagation(); // Prevent opening the edit modal
+function removePersona(id, type) {
+    event.stopPropagation();
     
-    const personaToRemove = personas.find(p => p.id === id);
-    if (personaToRemove && personaToRemove.uid === DEFAULT_ADMIN_UID) {
-        alert('デフォルトの管理人AIペルソナは削除できません。');
-        return;
+    if (type === 'admin') {
+        const personaToRemove = adminPersonas.find(p => p.id === id);
+        if (personaToRemove && personaToRemove.uid === DEFAULT_ADMIN_UID) {
+            alert('デフォルトの管理人AIペルソナは削除できません。');
+            return;
+        }
+        if (adminPersonas.length <= 1) {
+            alert('管理人AIは最低1体必要です。');
+            return;
+        }
+        adminPersonas = adminPersonas.filter(p => p.id !== id);
+        createAdminBackup();
+        saveAdminPersonasToLocal();
+        renderAdminPersonas();
+    } else {
+        personas = personas.filter(p => p.id !== id);
+        createBackup();
+        savePersonasToLocal();
+        renderPersonas();
     }
-
-    personas = personas.filter(p => p.id !== id);
-    createBackup();
-    savePersonasToLocal();
-    renderPersonas();
 }
 
-function renderPersonas() {
-    personaList.innerHTML = '';
-    if (personas.length === 0) {
-        personaList.innerHTML = '<p class="text-gray-500 text-sm w-full">まだペルソナが登録されていません。</p>';
+
+function renderPersonasList(list, containerEl, countEl, type) {
+    containerEl.innerHTML = '';
+    
+    if (list.length === 0) {
+        const message = type === 'admin' ? '管理人AIがいません。' : 'ペルソナがいません。';
+        containerEl.innerHTML = `<p class="text-slate-500 text-sm w-full">${message}</p>`;
     } else {
-        personas.forEach((persona, index) => {
-            const colors = [
-                { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300' },
-                { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
-                { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
-                { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
-                { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },
-            ];
+        list.forEach((persona, index) => {
+            const colors = type === 'admin' 
+                ? [{ bg: 'bg-indigo-500/10', text: 'text-indigo-300', border: 'border-indigo-500/30' }]
+                : [
+                    { bg: 'bg-green-500/10', text: 'text-green-300', border: 'border-green-500/30' },
+                    { bg: 'bg-sky-500/10', text: 'text-sky-300', border: 'border-sky-500/30' },
+                    { bg: 'bg-red-500/10', text: 'text-red-300', border: 'border-red-500/30' },
+                    { bg: 'bg-yellow-500/10', text: 'text-yellow-300', border: 'border-yellow-500/30' },
+                    { bg: 'bg-purple-500/10', text: 'text-purple-300', border: 'border-purple-500/30' },
+                ];
             const color = colors[index % colors.length];
 
             const chip = document.createElement('div');
             chip.className = `persona-chip flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-medium border ${color.bg} ${color.text} ${color.border}`;
-            chip.title = persona.prompt; // Show full prompt on hover
-            chip.onclick = () => openEditModal(persona.id);
+            chip.title = persona.prompt;
+            chip.onclick = () => openEditModal(persona.id, type);
             
             const isDefaultAdmin = persona.uid === DEFAULT_ADMIN_UID;
             
             chip.innerHTML = `
                 <span class="text-lg mr-1">${persona.emoji}</span>
                 <span>${persona.name} ${isDefaultAdmin ? ' (デフォルト)' : ''}</span>
-                ${!isDefaultAdmin ? `<button onclick="removePersona(${persona.id})" class="ml-2 -mr-1 text-current opacity-70 hover:opacity-100 font-bold">&times;</button>` : ''}
+                <button onclick="removePersona(${persona.id}, '${type}')" class="ml-2 -mr-1 text-current opacity-70 hover:opacity-100 font-bold">&times;</button>
             `;
-            personaList.appendChild(chip);
+            containerEl.appendChild(chip);
         });
     }
-    personaCount.textContent = personas.length;
-    populateAdminAiSelector();
+    
+    countEl.textContent = list.length;
+    
+    if (type === 'admin') {
+        populateAdminAiSelector();
+    }
+}
+
+function renderPersonas() {
+    renderPersonasList(personas, personaList, personaCount, 'discussion');
+}
+
+function renderAdminPersonas() {
+    renderPersonasList(adminPersonas, adminPersonaList, adminPersonaCount, 'admin');
 }
 
 function populateAdminAiSelector() {
     const currentSelection = adminAiPersonaSelection.value;
     adminAiPersonaSelection.innerHTML = '';
-    personas.forEach(p => {
+    adminPersonas.forEach(p => {
         const option = document.createElement('option');
         option.value = p.id;
         option.textContent = `${p.emoji} ${p.name}`;
         adminAiPersonaSelection.appendChild(option);
     });
-    // Restore previous selection if possible
+
     if ([...adminAiPersonaSelection.options].some(o => o.value === currentSelection)) {
         adminAiPersonaSelection.value = currentSelection;
     } else {
-        // Fallback to default if previous selection was deleted
-        const defaultAdminPersona = personas.find(p => p.uid === DEFAULT_ADMIN_UID);
+        const defaultAdminPersona = adminPersonas.find(p => p.uid === DEFAULT_ADMIN_UID);
         if (defaultAdminPersona) {
             adminAiPersonaSelection.value = defaultAdminPersona.id;
         }
     }
+    
+    // Also update the discussion persona generator list, as it depends on the admin selection
+    populatePersonaSelector();
 }
 
 
 // --- Persona Edit Modal Logic ---
-function openEditModal(id) {
-    const persona = personas.find(p => p.id === id);
+function openEditModal(id, type) {
+    const list = type === 'admin' ? adminPersonas : personas;
+    const persona = list.find(p => p.id === id);
     if (!persona) return;
 
     editPersonaId.value = id;
+    editPersonaType.value = type;
     editPersonaName.value = persona.name;
     editPersonaPrompt.value = persona.prompt;
     
-    // Prevent editing name of default admin
     if (persona.uid === DEFAULT_ADMIN_UID) {
         editPersonaName.disabled = true;
     } else {
@@ -1022,6 +1406,7 @@ function closeEditModal() {
 
 async function savePersona() {
     const id = parseInt(editPersonaId.value, 10);
+    const type = editPersonaType.value;
     let name = editPersonaName.value.trim();
     let prompt = editPersonaPrompt.value.trim();
 
@@ -1034,17 +1419,26 @@ async function savePersona() {
     const selectedModel = settingsModelSelection.value;
 
     try {
-        const personaIndex = personas.findIndex(p => p.id === id);
+        const list = type === 'admin' ? adminPersonas : personas;
+        const personaIndex = list.findIndex(p => p.id === id);
+        
         if (personaIndex > -1) {
             const emoji = await getEmojiForPersona(name, prompt, selectedModel);
-            personas[personaIndex].name = name;
-            personas[personaIndex].prompt = prompt;
-            personas[personaIndex].emoji = emoji; 
-            createBackup();
-            savePersonasToLocal();
+            list[personaIndex].name = name;
+            list[personaIndex].prompt = prompt;
+            list[personaIndex].emoji = emoji; 
+            
+            if (type === 'admin') {
+                createAdminBackup();
+                saveAdminPersonasToLocal();
+                renderAdminPersonas();
+            } else {
+                createBackup();
+                savePersonasToLocal();
+                renderPersonas();
+            }
         }
 
-        renderPersonas();
         closeEditModal();
     } catch (error) {
         alert(`ペルソナの更新に失敗しました: ${error.message}`);
@@ -1137,6 +1531,85 @@ function formatJson() {
     }
 }
 
+
+// --- Admin Persona JSON Edit Modal Logic ---
+function validateAdminJsonText(text) {
+    try {
+        const newPersonas = JSON.parse(text);
+        if (!Array.isArray(newPersonas)) {
+            throw new Error("データは配列形式でなければなりません。");
+        }
+        const isValid = newPersonas.every(p => p && typeof p === 'object' && p.name && p.prompt && p.uid && p.emoji && p.id);
+        if(!isValid) {
+            throw new Error("一部のペルソナに必要なプロパティ (id, name, prompt, emoji, uid) がありません。");
+        }
+        
+        adminJsonError.textContent = '';
+        saveAdminJsonBtn.disabled = false;
+        return true;
+    } catch (error) {
+        adminJsonError.textContent = `エラー: ${error.message}`;
+        saveAdminJsonBtn.disabled = true;
+        return false;
+    }
+}
+
+function openAdminJsonModal() {
+    editAdminJsonModal.classList.remove('hidden');
+    editAdminJsonModal.classList.add('flex');
+    
+    if (!adminJsonEditor) {
+        window.jsonlint = jsonlint;
+        adminJsonEditor = CodeMirror.fromTextArea(adminPersonasJsonTextarea, {
+            lineNumbers: true,
+            mode: 'application/json',
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true,
+            theme: 'material-darker',
+            lineWrapping: true
+        });
+        adminJsonEditor.on('change', () => {
+             validateAdminJsonText(adminJsonEditor.getValue());
+        });
+    }
+
+    const jsonText = JSON.stringify(adminPersonas, null, 2);
+    adminJsonEditor.setValue(jsonText);
+    validateAdminJsonText(jsonText);
+    
+    setTimeout(() => {
+        adminJsonEditor.refresh();
+        adminJsonEditor.focus();
+    }, 1); 
+}
+
+function closeAdminJsonModal() {
+    editAdminJsonModal.classList.add('hidden');
+    editAdminJsonModal.classList.remove('flex');
+}
+
+function saveAdminJsonChanges() {
+    const text = adminJsonEditor.getValue();
+    if (validateAdminJsonText(text)) {
+        adminPersonas = JSON.parse(text);
+        createAdminBackup();
+        saveAdminPersonasToLocal();
+        renderAdminPersonas();
+        closeAdminJsonModal();
+    }
+}
+
+function formatAdminJson() {
+    try {
+        const parsed = JSON.parse(adminJsonEditor.getValue());
+        adminJsonEditor.setValue(JSON.stringify(parsed, null, 2));
+        validateAdminJsonText(adminJsonEditor.getValue());
+    } catch (error) {
+        // Error is handled by validator
+    }
+}
+
+
 // --- Backup Restore Modal Logic ---
 function openRestoreModal() {
     renderBackups();
@@ -1152,13 +1625,13 @@ function closeRestoreModal() {
 function renderBackups() {
     backupListContainer.innerHTML = '';
     if (backups.length === 0) {
-        backupListContainer.innerHTML = `<p class="text-center text-gray-500 py-4">利用可能なバックアップはありません。</p>`;
+        backupListContainer.innerHTML = `<p class="text-center text-slate-500 py-4">利用可能なバックアップはありません。</p>`;
         return;
     }
 
     backups.forEach(backup => {
         const backupItem = document.createElement('div');
-        backupItem.className = 'flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0';
+        backupItem.className = 'flex items-center justify-between py-3 border-b border-slate-700 last:border-b-0';
         
         const timestamp = new Date(backup.timestamp).toLocaleString('ja-JP', {
             year: 'numeric', month: '2-digit', day: '2-digit',
@@ -1167,10 +1640,10 @@ function renderBackups() {
 
         backupItem.innerHTML = `
             <div>
-                <p class="font-semibold text-gray-800">${timestamp}</p>
-                <p class="text-sm text-gray-500">ペルソナ数: ${backup.count}</p>
+                <p class="font-semibold text-slate-200">${timestamp}</p>
+                <p class="text-sm text-slate-400">ペルソナ数: ${backup.count}</p>
             </div>
-            <button data-timestamp="${backup.timestamp}" class="restore-btn bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">このバージョンに戻す</button>
+            <button data-timestamp="${backup.timestamp}" class="restore-btn bg-indigo-600 text-white py-1 px-3 rounded-lg hover:bg-indigo-700 text-sm">このバージョンに戻す</button>
         `;
         backupListContainer.appendChild(backupItem);
     });
@@ -1186,13 +1659,74 @@ function handleRestoreClick(e) {
 
         openConfirmationModal(
             'バックアップを復元しますか？',
-            `'${new Date(timestamp).toLocaleString('ja-JP')}' の状態に戻します。現在のペルソナリストは上書きされます。`,
+            `'${new Date(timestamp).toLocaleString('ja-JP')}' の状態に戻します。現在の議論用ペルソナリストは上書きされます。`,
             () => {
                 personas = JSON.parse(JSON.stringify(backup.data)); 
                 createBackup();
                 savePersonasToLocal();
                 renderPersonas();
                 closeRestoreModal();
+            }
+        );
+    }
+}
+
+// --- Admin Backup Restore Modal Logic ---
+function openAdminRestoreModal() {
+    renderAdminBackups();
+    restoreAdminBackupModal.classList.remove('hidden');
+    restoreAdminBackupModal.classList.add('flex');
+}
+
+function closeAdminRestoreModal() {
+    restoreAdminBackupModal.classList.add('hidden');
+    restoreAdminBackupModal.classList.remove('flex');
+}
+
+function renderAdminBackups() {
+    adminBackupListContainer.innerHTML = '';
+    if (adminBackups.length === 0) {
+        adminBackupListContainer.innerHTML = `<p class="text-center text-slate-500 py-4">利用可能なバックアップはありません。</p>`;
+        return;
+    }
+
+    adminBackups.forEach(backup => {
+        const backupItem = document.createElement('div');
+        backupItem.className = 'flex items-center justify-between py-3 border-b border-slate-700 last:border-b-0';
+        
+        const timestamp = new Date(backup.timestamp).toLocaleString('ja-JP', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+        backupItem.innerHTML = `
+            <div>
+                <p class="font-semibold text-slate-200">${timestamp}</p>
+                <p class="text-sm text-slate-400">ペルソナ数: ${backup.count}</p>
+            </div>
+            <button data-timestamp="${backup.timestamp}" class="restore-admin-btn bg-indigo-600 text-white py-1 px-3 rounded-lg hover:bg-indigo-700 text-sm">このバージョンに戻す</button>
+        `;
+        adminBackupListContainer.appendChild(backupItem);
+    });
+}
+
+function handleAdminRestoreClick(e) {
+    if (e.target.classList.contains('restore-admin-btn')) {
+        const timestamp = parseInt(e.target.dataset.timestamp, 10);
+        if (!timestamp) return;
+
+        const backup = adminBackups.find(b => b.timestamp === timestamp);
+        if (!backup) return;
+
+        openConfirmationModal(
+            '管理人AIのバックアップを復元しますか？',
+            `'${new Date(timestamp).toLocaleString('ja-JP')}' の状態に戻します。現在の管理人AIペルソナリストは上書きされます。`,
+            () => {
+                adminPersonas = JSON.parse(JSON.stringify(backup.data)); 
+                createAdminBackup();
+                saveAdminPersonasToLocal();
+                renderAdminPersonas();
+                closeAdminRestoreModal();
             }
         );
     }
@@ -1217,17 +1751,15 @@ function closeConfirmationModal() {
 // --- Create Thread Modal Logic ---
 function populatePersonaSelector() {
     generatorPersonaSelect.innerHTML = '';
-    const adminPersonaId = adminAiPersonaSelection.value;
-    const selectablePersonas = personas.filter(p => p.id.toString() !== adminPersonaId);
 
-    if (selectablePersonas.length === 0) {
+    if (personas.length === 0) {
         const option = document.createElement('option');
         option.textContent = '議論に参加できるペルソナがいません';
         option.disabled = true;
         generatorPersonaSelect.appendChild(option);
         generateFromSourceBtn.disabled = true;
     } else {
-        selectablePersonas.forEach(p => {
+        personas.forEach(p => {
             const option = document.createElement('option');
             option.value = p.id;
             option.textContent = `${p.emoji} ${p.name}`;
@@ -1284,10 +1816,10 @@ function renderUrlList() {
     urlListContainer.innerHTML = '';
     sourceUrls.forEach((url, index) => {
         const urlItem = document.createElement('div');
-        urlItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded-md text-sm';
+        urlItem.className = 'flex items-center justify-between bg-slate-700 p-2 rounded-md text-sm';
         urlItem.innerHTML = `
-            <span class="truncate w-full pr-2">${url}</span>
-            <button onclick="removeUrlFromList(${index})" class="text-red-500 hover:text-red-700 font-bold">&times;</button>
+            <span class="truncate w-full pr-2 text-slate-300">${url}</span>
+            <button onclick="removeUrlFromList(${index})" class="text-red-400 hover:text-red-300 font-bold">&times;</button>
         `;
         urlListContainer.appendChild(urlItem);
     });
@@ -1295,13 +1827,13 @@ function renderUrlList() {
 
 function switchTab(tab) {
     if (tab === 'url') {
-        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
-        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-400 text-indigo-400';
+        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500';
         tabPanelUrl.classList.remove('hidden');
         tabPanelText.classList.add('hidden');
     } else {
-        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
-        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        tabText.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-indigo-400 text-indigo-400';
+        tabUrl.className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500';
         tabPanelText.classList.remove('hidden');
         tabPanelUrl.classList.add('hidden');
     }
@@ -1377,14 +1909,28 @@ async function generatePersonaName(prompt, model) {
 
 async function generatePersonaPrompt(name, model) {
     const lang = settingsLanguageSelection.value;
-    const systemPrompt = `You are a creative writer. Based on the provided persona name, write a short, clear role description (in ${lang}) for an AI that embodies that name. Output only the description, no extra text.`;
+    const systemPrompt = `あなたは、AIキャラクター設定の専門家です。これから作成する「AI自動生成掲示板」というアプリケーションで、他のAIと議論を交わす「議論用AI」の役割・設定（システムプロンプト）を、与えられたペルソナ名から考案してください。議論が面白くなるような、ユニークで一貫性のあるキャラクター設定が良いでしょう。出力は、指定された言語(${lang})で、役割・設定のテキストのみを生成してください。他のテキストやマークダウンは含めないでください。`;
     const userPrompt = `Persona Name: "${name}"\n\nRole Description (in ${lang}):`;
     return await callGemini(systemPrompt, userPrompt, { model });
 }
 
+async function generateAdminPersonaPrompt(name, model) {
+    const lang = settingsLanguageSelection.value;
+    const systemPrompt = `あなたは、AIキャラクター設定の専門家です。これから作成する「AI自動生成掲示板」というアプリケーションで、司会進行やユーザーからの質問に答える役割を担う「管理人・ヘルプAI」の役割・設定（システムプロンプト）を、与えられたペルソナ名から考案してください。ユーザーが使いやすいと感じるような、親切で分かりやすいキャラクター設定が良いでしょう。出力は、指定された言語(${lang})で、役割・設定のテキストのみを生成してください。他のテキストやマークダウンは含めないでください。`;
+    const userPrompt = `Persona Name: "${name}"\n\nRole Description (in ${lang}):`;
+    return await callGemini(systemPrompt, userPrompt, { model });
+}
+
+
 async function generateRandomPersona(model) {
     const lang = settingsLanguageSelection.value;
-    const systemPrompt = `Create a unique and interesting AI persona. Provide the output in a single JSON object with two keys: "personaName" (in ${lang}, max 10 characters for Japanese/Chinese, or a few words for others) and "personaPrompt" (a short role description in ${lang}). Do not include any other text or markdown formatting.`;
+    const systemPrompt = `Create a unique and interesting AI persona for an online discussion forum. The persona will debate with other AIs. Provide the output in a single JSON object with two keys: "personaName" (in ${lang}, max 10 characters for Japanese/Chinese, or a few words for others) and "personaPrompt" (a short role description in ${lang} that defines its personality for the debate). Do not include any other text or markdown formatting.`;
+    return await callGemini(systemPrompt, "", { responseMimeType: 'application/json', model });
+}
+
+async function generateAdminPersona(model) {
+    const lang = settingsLanguageSelection.value;
+    const systemPrompt = `あなたは、AIキャラクター設定の専門家です。これから作成する「AI自動生成掲示板」というアプリケーションで、司会進行やユーザーからの質問に答える役割を担う「管理人・ヘルプAI」のペルソナを考案してください。ユーザーが使いやすいと感じるような、親切で分かりやすいキャラクターが良いでしょう。出力は、"personaName"（ペルソナ名）と "personaPrompt"（役割・設定のプロンプト）の2つのキーを持つJSONオブジェクト形式で、指定された言語(${lang})で生成してください。他のテキストやマークダウンは含めないでください。`;
     return await callGemini(systemPrompt, "", { responseMimeType: 'application/json', model });
 }
 
@@ -1522,11 +2068,10 @@ async function startDiscussion() {
         return;
     }
 
-    const adminPersonaId = adminAiPersonaSelection.value;
-    discussionPersonas = personas.filter(p => p.id.toString() !== adminPersonaId);
+    currentDiscussionPersonas = [...personas];
 
-    if (discussionPersonas.length < 2) {
-        alert('管理人AIを除いて、少なくとも2つの議論参加用AIペルソナを登録してください。');
+    if (currentDiscussionPersonas.length < 2) {
+        alert('少なくとも2つの議論参加用AIペルソナを登録してください。');
         return;
     }
 
@@ -1595,7 +2140,7 @@ async function generationLoop() {
             const reasoning = adminAiChoice?.reasoning;
 
             if (reasoning) {
-                 const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+                 const adminPersona = adminPersonas.find(p => p.id.toString() === adminAiPersonaSelection.value);
                  const adminEmoji = adminPersona ? adminPersona.emoji : '🎀';
                  adminAiReasoning.textContent = `（管理人AI${adminEmoji}: ${reasoning}）`;
                  console.log(`管理人AI${adminEmoji}: ${reasoning}`);
@@ -1608,7 +2153,7 @@ async function generationLoop() {
                 continue;
             }
 
-            const nextSpeakerPersona = discussionPersonas.find(p => p.name === nextSpeakerName);
+            const nextSpeakerPersona = currentDiscussionPersonas.find(p => p.name === nextSpeakerName);
             if (!nextSpeakerPersona) {
                  console.error(`Error: Persona "${nextSpeakerName}" not found in discussion group.`);
                  adminAiReasoning.textContent = `（管理人AI🎀: あれ？「${nextSpeakerName}」さんが見当たらないみたいです…）`;
@@ -1630,7 +2175,7 @@ async function generationLoop() {
             
             responseCount++;
             
-            const speakerIndex = discussionPersonas.findIndex(p => p.name === nextSpeakerName);
+            const speakerIndex = currentDiscussionPersonas.findIndex(p => p.name === nextSpeakerName);
             addPostToThread(newPost.author, newPost.content, speakerIndex, newPost.timestamp, null, newPost.uid);
             
             await new Promise(res => setTimeout(res, 100));
@@ -1654,10 +2199,10 @@ async function selectNextSpeaker(referenceCount) {
     const relevantPosts = currentThread.posts.slice(-referenceCount);
     const historyText = relevantPosts.map(p => `${p.author} (ID:${p.uid}): ${p.content}`).join('\n\n');
 
-    const personaNames = discussionPersonas.map(p => p.name).join(', ');
+    const personaNames = currentDiscussionPersonas.map(p => p.name).join(', ');
     
     const adminPersonaId = adminAiPersonaSelection.value;
-    const adminPersona = personas.find(p => p.id === parseInt(adminPersonaId));
+    const adminPersona = adminPersonas.find(p => p.id.toString() === adminPersonaId);
     
     const systemPrompt = adminPersona ? adminPersona.prompt : 'あなたは優秀なアシスタントです。';
 
@@ -1679,7 +2224,7 @@ ${personaNames}`;
     try {
         const result = await callGemini(systemPrompt, userPrompt, { model: discussionModel, responseMimeType: 'application/json' });
         // Ensure the returned speaker name is valid from the DISCUSSION personas
-        const foundPersona = discussionPersonas.find(p => result.speakerName && result.speakerName.includes(p.name));
+        const foundPersona = currentDiscussionPersonas.find(p => result.speakerName && result.speakerName.includes(p.name));
         if (foundPersona) {
             result.speakerName = foundPersona.name; // Use the exact name
             return result;
@@ -1715,12 +2260,11 @@ function renderThread(title) {
     threadIndexContainer.classList.add('hidden');
     threadDisplayContainer.classList.remove('hidden');
     backToIndexBtn.classList.remove('hidden');
-    openMenuBtn.classList.add('hidden');
 
     threadContainer.innerHTML = '';
     
     const titleElement = document.createElement('h2');
-    titleElement.className = "text-2xl font-semibold";
+    titleElement.className = "text-3xl font-bold text-slate-100";
     titleElement.textContent = title;
     
     threadHeader.innerHTML = ''; // Clear header
@@ -1728,10 +2272,10 @@ function renderThread(title) {
     
     if (currentThread.sources && currentThread.sources.length > 0) {
         const sourceContainer = document.createElement('div');
-        sourceContainer.className = 'text-sm text-gray-600 mt-1';
+        sourceContainer.className = 'text-sm text-slate-400 mt-2';
         let sourceLinks = 'ソース: ';
         currentThread.sources.forEach((url, index) => {
-            sourceLinks += `<a href="${url}" target="_blank" class="text-blue-600 hover:underline">${new URL(url).hostname}</a>`;
+            sourceLinks += `<a href="${url}" target="_blank" class="text-blue-400 hover:underline">${new URL(url).hostname}</a>`;
             if (index < currentThread.sources.length - 1) {
                 sourceLinks += ', ';
             }
@@ -1752,7 +2296,7 @@ function addPostToThread(author, content, authorIndex, timestamp, postNumber, ui
     }
 
     const postElement = document.createElement('div');
-    postElement.className = "thread-post py-2";
+    postElement.className = "thread-post py-4";
 
     const formattedTimestamp = new Date(timestamp).toLocaleString('ja-JP', {
         year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -1761,15 +2305,17 @@ function addPostToThread(author, content, authorIndex, timestamp, postNumber, ui
 
     let authorHtml = `<span class="post-author">${author}</span>`;
     if(authorIndex === -2){ // User
-        authorHtml = `<span class="font-bold text-blue-700">${author}</span>`;
+        authorHtml = `<span class="font-bold text-sky-400">${author}</span>`;
     } 
+
+    const renderedContent = DOMPurify.sanitize(marked.parse(content));
 
     postElement.innerHTML = `
         <div class="post-header text-sm">
             ${postNumber} 名前：${authorHtml}：${formattedTimestamp} ID:${uid}
         </div>
-        <div class="post-content mt-1">
-            ${content.replace(/\n/g, '<br>')}
+        <div class="post-content rendered-markdown mt-2 text-slate-300">
+            ${renderedContent}
         </div>
     `;
     threadContainer.appendChild(postElement);
@@ -1788,14 +2334,21 @@ function showGenerationControls() {
     adminAiReasoning.textContent = '';
 }
 
-function setupUIForLoadedThread() {
-    generationControls.classList.add('hidden');
-    isGenerating = false;
-    isPaused = false;
-    isFinished = true;
+function updateControlsForLoadedThread() {
+    generationControls.classList.remove('hidden');
+    generationControls.classList.add('flex');
+    generationStatus.classList.add('hidden');
+    pausedControls.classList.remove('hidden');
+    pausedControls.classList.add('flex');
+    continueMaxResponsesInput.value = maxResponses; // This is set in loadThread
+    pauseResumeBtn.textContent = '再開';
+    stopBtn.classList.add('hidden');
+    adminAiReasoning.textContent = '保存されたスレッドを読み込みました。ここから議論を再開できます。';
 }
 
 function updateControlsForFinishedState() {
+    generationControls.classList.remove('hidden');
+    generationControls.classList.add('flex');
     generationStatus.classList.add('hidden');
     pausedControls.classList.remove('hidden');
     pausedControls.classList.add('flex');
@@ -1820,6 +2373,10 @@ function updateGenerationStatus() {
 
 function handlePauseResume() {
     if (isFinished) {
+        if (personas.length < 2) {
+            alert('議論を再開するには、最低2つの議論参加用AIペルソナが必要です。');
+            return;
+        }
         const newMax = parseInt(continueMaxResponsesInput.value, 10);
         if (isNaN(newMax) || newMax <= responseCount) {
             alert('有効なレス停止数を入力してください。現在のレス数より大きい必要があります。');
@@ -1854,13 +2411,15 @@ function handlePauseResume() {
 function handleStop() {
     isGenerating = false;
     isPaused = false; // Ensure loop continues to exit condition
+    isFinished = true;
+    updateControlsForFinishedState();
 }
 
 
 // --- Utility Functions ---
 function exportPersonas() {
     if (personas.length === 0) {
-        alert("エクスポートするペルソナがありません。");
+        alert("エクスポートする議論用ペルソナがありません。");
         return;
     }
     const jsonString = JSON.stringify(personas, null, 2);
@@ -1868,7 +2427,24 @@ function exportPersonas() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ai-personas.json';
+    a.download = 'ai-discussion-personas.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportAdminPersonas() {
+    if (adminPersonas.length === 0) {
+        alert("エクスポートする管理人AIペルソナがありません。");
+        return;
+    }
+    const jsonString = JSON.stringify(adminPersonas, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-admin-personas.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1908,7 +2484,7 @@ async function downloadThreadAsImage() {
 
     try {
         const canvas = await html2canvas(document.getElementById('threadParent'), {
-            backgroundColor: '#F0E0D6',
+            backgroundColor: '#1e293b', // slate-800
             useCORS: true
         });
         const imageURL = canvas.toDataURL('image/png');
@@ -1958,7 +2534,7 @@ function closeThreadListModal() {
 function renderThreadList() {
     threadListContainer.innerHTML = '';
     if (threads.length === 0) {
-        threadListContainer.innerHTML = `<p class="text-center text-gray-500 py-4">保存されたスレッドはありません。</p>`;
+        threadListContainer.innerHTML = `<p class="text-center text-slate-400 py-4">保存されたスレッドはありません。</p>`;
         return;
     }
 
@@ -1966,7 +2542,7 @@ function renderThreadList() {
 
     sortedThreads.forEach(thread => {
         const threadItem = document.createElement('div');
-        threadItem.className = 'flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0';
+        threadItem.className = 'flex items-center justify-between py-3 border-b border-slate-700 last:border-b-0';
         
         const timestamp = new Date(thread.createdAt).toLocaleString('ja-JP', {
             year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -1974,12 +2550,12 @@ function renderThreadList() {
 
         threadItem.innerHTML = `
             <div class="flex-grow overflow-hidden pr-4">
-                <p class="font-semibold text-gray-800 truncate" title="${thread.title}">${thread.title}</p>
-                <p class="text-sm text-gray-500">${timestamp} - ${thread.posts.length}レス</p>
+                <p class="font-semibold text-slate-200 truncate" title="${thread.title}">${thread.title}</p>
+                <p class="text-sm text-slate-400">${timestamp} - ${thread.posts.length}レス</p>
             </div>
             <div class="flex-shrink-0 flex items-center space-x-2">
-                <button data-id="${thread.id}" class="load-thread-btn bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">読み込む</button>
-                <button data-id="${thread.id}" class="delete-thread-btn bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm">削除</button>
+                <button data-id="${thread.id}" class="load-thread-btn bg-indigo-600 text-white py-1 px-3 rounded-lg hover:bg-indigo-700 text-sm">読み込む</button>
+                <button data-id="${thread.id}" class="delete-thread-btn bg-red-600 text-white py-1 px-3 rounded-lg hover:bg-red-700 text-sm">削除</button>
             </div>
         `;
         threadListContainer.appendChild(threadItem);
@@ -2007,9 +2583,24 @@ function loadThread(id) {
     
     currentThread = threads[threadIndex];
     currentThreadId = id;
+
+    // Set state for potential resume
+    isGenerating = false;
+    isPaused = false;
+    isFinished = true;
+    responseCount = currentThread.posts.length - 1;
     discussionLanguage = currentThread.language || '日本語';
+    
+    // Set a sensible default for resuming, and load current settings for other params
+    maxResponses = responseCount + 5; 
+    referenceCount = parseInt(referenceCountInput.value, 10);
+    responseLength = parseInt(responseLengthInput.value, 10);
+    discussionModel = settingsModelSelection.value;
+    currentDiscussionPersonas = [...personas];
+
     renderThread(currentThread.title);
-    setupUIForLoadedThread();
+    updateControlsForLoadedThread(); // Display resume controls
+    
     closeThreadListModal();
     closeMenu();
 }
@@ -2042,7 +2633,6 @@ function clearThreadView() {
     threadDisplayContainer.classList.add('hidden');
     threadIndexContainer.classList.remove('hidden');
     backToIndexBtn.classList.add('hidden');
-    openMenuBtn.classList.remove('hidden');
     generationControls.classList.add('hidden');
     adminAiReasoning.textContent = '';
     
@@ -2059,8 +2649,8 @@ function renderThreadIndex(threadsToRender = threads) {
 
     if (sortedThreads.length === 0) {
         threadIndexList.innerHTML = `
-            <div class="text-center text-gray-600 py-10">
-                <p class="text-lg font-semibold">スレッドがありません</p>
+            <div class="text-center text-slate-400 py-10 bg-slate-800/50 rounded-lg">
+                <p class="text-lg font-semibold text-slate-200">スレッドがありません</p>
                 <p>右上の「スレッド操作」から新しいスレッドを作成してください。</p>
             </div>`;
         return;
@@ -2068,7 +2658,7 @@ function renderThreadIndex(threadsToRender = threads) {
 
     sortedThreads.forEach(thread => {
         const item = document.createElement('div');
-        item.className = 'bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 transition-all';
+        item.className = 'bg-slate-800 p-4 rounded-lg shiny-border shadow-md hover:shadow-indigo-500/20 transition-all';
         const timestamp = new Date(thread.createdAt).toLocaleString('ja-JP', {
             year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
         });
@@ -2076,12 +2666,12 @@ function renderThreadIndex(threadsToRender = threads) {
         item.innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex-grow overflow-hidden pr-4">
-                    <p class="font-semibold text-gray-800 truncate cursor-pointer hover:text-indigo-600" title="${thread.title}" onclick="loadThread('${thread.id}')">${thread.title}</p>
-                    <p class="text-sm text-gray-500">${timestamp} - ${thread.posts.length}レス</p>
+                    <p class="font-semibold text-slate-200 truncate cursor-pointer hover:text-indigo-400" title="${thread.title}" onclick="loadThread('${thread.id}')">${thread.title}</p>
+                    <p class="text-sm text-slate-400">${timestamp} - ${thread.posts.length}レス</p>
                 </div>
                 <div class="flex-shrink-0 flex items-center space-x-2">
-                    <button onclick="loadThread('${thread.id}')" class="bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 text-sm">読み込む</button>
-                    <button onclick="deleteThread('${thread.id}')" class="bg-red-100 text-red-700 py-1 px-3 rounded-md hover:bg-red-200 text-sm">削除</button>
+                    <button onclick="loadThread('${thread.id}')" class="bg-indigo-600 text-white py-1 px-3 rounded-lg hover:bg-indigo-700 text-sm font-semibold">読み込む</button>
+                    <button onclick="deleteThread('${thread.id}')" class="bg-red-500/20 text-red-300 py-1 px-3 rounded-lg hover:bg-red-500/40 text-sm font-semibold">削除</button>
                 </div>
             </div>`;
         threadIndexList.appendChild(item);
@@ -2144,13 +2734,13 @@ Do not include any other text, explanations, or markdown formatting.`;
 // --- Help Chat Logic ---
 function switchHelpTab(tab) {
     if (tab === 'guide') {
-        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
-        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-400 text-indigo-400';
+        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500';
         helpPanelGuide.classList.remove('hidden');
         helpPanelChat.classList.add('hidden');
     } else {
-        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600';
-        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+        helpTabChat.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-indigo-400 text-indigo-400';
+        helpTabGuide.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500';
         helpPanelChat.classList.remove('hidden');
         helpPanelChat.classList.add('flex');
         helpPanelGuide.classList.add('hidden');
@@ -2160,15 +2750,16 @@ function switchHelpTab(tab) {
 function addChatMessage(sender, message) {
     const messageElement = document.createElement('div');
     if (sender === 'ai') {
-        const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+        const adminPersona = adminPersonas.find(p => p.id.toString() === adminAiPersonaSelection.value);
         const adminEmoji = adminPersona ? adminPersona.emoji : 'AI';
         const adminName = adminPersona ? adminPersona.name.substring(0,2) : 'AI';
+        const renderedMessage = DOMPurify.sanitize(marked.parse(message));
 
         messageElement.innerHTML = `
             <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold" title="${adminPersona.name}">${adminEmoji}</div>
-                <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                    <p class="text-sm text-gray-800">${message.replace(/\n/g, '<br>')}</p>
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold" title="${adminPersona.name}">${adminEmoji}</div>
+                <div class="bg-slate-700 rendered-markdown rounded-lg p-3 max-w-[80%] text-sm text-slate-200">
+                     ${renderedMessage}
                 </div>
             </div>`;
     } else { // user
@@ -2177,7 +2768,7 @@ function addChatMessage(sender, message) {
                 <div class="bg-indigo-500 text-white rounded-lg p-3 max-w-[80%]">
                     <p class="text-sm">${message.replace(/\n/g, '<br>')}</p>
                 </div>
-                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">You</div>
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold">You</div>
             </div>`;
     }
     chatMessages.appendChild(messageElement);
@@ -2186,7 +2777,7 @@ function addChatMessage(sender, message) {
 
 function resetHelpChat() {
     chatMessages.innerHTML = '';
-    const adminPersona = personas.find(p => p.id === parseInt(adminAiPersonaSelection.value));
+    const adminPersona = adminPersonas.find(p => p.id.toString() === adminAiPersonaSelection.value);
     const welcomeMessage = adminPersona ? 'こんにちは！アプリの使い方で分からないことがあれば、なんでも聞いてくださいね♪' : 'ようこそ！ご質問をどうぞ。';
     addChatMessage('ai', welcomeMessage);
     switchHelpTab('guide');
@@ -2205,7 +2796,7 @@ async function handleChatSend() {
     try {
         const lang = settingsLanguageSelection.value;
         const adminPersonaId = adminAiPersonaSelection.value;
-        const adminPersona = personas.find(p => p.id === parseInt(adminPersonaId));
+        const adminPersona = adminPersonas.find(p => p.id.toString() === adminPersonaId);
         
         const systemPrompt = adminPersona ? adminPersona.prompt : 'あなたは親切なアシスタントです。';
 
@@ -2234,7 +2825,9 @@ ${userInput}`;
 
 
 // --- Event Listeners ---
-addPersonaBtn.addEventListener('click', addPersona);
+addPersonaBtn.addEventListener('click', () => addPersona(false));
+addAdminPersonaBtn.addEventListener('click', () => addPersona(true));
+
 startThreadBtn.addEventListener('click', startDiscussion);
 openMenuBtn.addEventListener('click', openMenu);
 closeMenuBtn.addEventListener('click', closeMenu);
@@ -2242,10 +2835,7 @@ menuBackdrop.addEventListener('click', closeMenu);
 settingsModelSelection.addEventListener('change', saveSettingsToLocal);
 apiKeyInput.addEventListener('input', saveSettingsToLocal);
 settingsLanguageSelection.addEventListener('change', saveSettingsToLocal);
-adminAiPersonaSelection.addEventListener('change', () => {
-    saveSettingsToLocal();
-    populatePersonaSelector(); // Update generator list when admin persona changes
-});
+adminAiPersonaSelection.addEventListener('change', saveSettingsToLocal);
 
 
 // Edit Modal Listeners
@@ -2260,11 +2850,23 @@ cancelJsonEditBtn.addEventListener('click', closeJsonModal);
 saveJsonBtn.addEventListener('click', saveJsonChanges);
 formatJsonBtn.addEventListener('click', formatJson);
 
+// Admin JSON Modal Listeners
+closeAdminJsonModalBtn.addEventListener('click', closeAdminJsonModal);
+cancelAdminJsonEditBtn.addEventListener('click', closeAdminJsonModal);
+saveAdminJsonBtn.addEventListener('click', saveAdminJsonChanges);
+formatAdminJsonBtn.addEventListener('click', formatAdminJson);
+
 // Restore Backup Listeners
 openRestoreModalBtn.addEventListener('click', openRestoreModal);
 closeRestoreModalBtn.addEventListener('click', closeRestoreModal);
 cancelRestoreBtn.addEventListener('click', closeRestoreModal);
 backupListContainer.addEventListener('click', handleRestoreClick);
+
+// Admin Restore Listeners
+closeAdminRestoreModalBtn.addEventListener('click', closeAdminRestoreModal);
+cancelAdminRestoreBtn.addEventListener('click', closeAdminRestoreModal);
+adminBackupListContainer.addEventListener('click', handleAdminRestoreClick);
+
 
 // Thread List Listeners
 closeThreadListModalBtn.addEventListener('click', closeThreadListModal);
@@ -2341,9 +2943,60 @@ function handleImport(event) {
     reader.readAsText(file);
 }
 
+function handleAdminImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!Array.isArray(imported)) {
+                throw new Error("JSONが配列形式ではありません。");
+            }
+
+            let addedCount = 0;
+            const existingUids = new Set(adminPersonas.map(p => p.uid));
+
+            imported.forEach(p => {
+                if (p && p.name && p.prompt && p.uid && p.emoji) {
+                    if (!existingUids.has(p.uid)) {
+                        adminPersonas.push(p);
+                        existingUids.add(p.uid);
+                        addedCount++;
+                    }
+                }
+            });
+
+            if (addedCount > 0) {
+                createAdminBackup();
+                saveAdminPersonasToLocal();
+                renderAdminPersonas();
+                alert(`${addedCount}件の新しい管理人AIペルソナをインポートしました。`);
+            } else {
+                alert("新しい管理人AIペルソナはありませんでした。(UIDが重複している可能性があります)");
+            }
+
+        } catch (error) {
+            alert(`ファイルの読み込みまたは解析に失敗しました: ${error.message}`);
+        } finally {
+            importAdminFileInput.value = '';
+        }
+    };
+    reader.readAsText(file);
+}
+
 importPersonasBtn.addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', handleImport);
 exportPersonasBtn.addEventListener('click', exportPersonas);
+
+// Admin Persona Management Listeners
+importAdminPersonasBtn.addEventListener('click', () => importAdminFileInput.click());
+importAdminFileInput.addEventListener('change', handleAdminImport);
+exportAdminPersonasBtn.addEventListener('click', exportAdminPersonas);
+editAdminJsonBtn.addEventListener('click', openAdminJsonModal);
+openAdminRestoreModalBtn.addEventListener('click', openAdminRestoreModal);
+
 
 // Header listeners
 threadActionsBtn.addEventListener('click', () => threadActionsDropdown.classList.toggle('hidden'));
@@ -2406,11 +3059,18 @@ aiSearchBtn.addEventListener('click', handleAiSearch);
 // --- Initial Render ---
 function initializeApp() {
     loadPersonasFromLocal();
+    loadAdminPersonasFromLocal();
+    migrateAdminPersona(); // Move default admin if necessary
     ensureDefaultAdminPersona();
+    if (ensureDefaultDiscussionPersonas()) {
+        savePersonasToLocal();
+    }
     loadBackupsFromLocal();
+    loadAdminBackupsFromLocal();
     loadThreadsFromLocal();
-    renderPersonas(); // This now calls populateAdminAiSelector
-    loadSettingsFromLocal(); // Must be after renderPersonas to set the select value
+    renderPersonas(); 
+    renderAdminPersonas();
+    loadSettingsFromLocal();
     renderThreadIndex();
 }
 
