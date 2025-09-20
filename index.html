@@ -2055,6 +2055,86 @@ function loadThreadsFromLocal() {
     }
 }
 
+function ensureSampleThreads() {
+    if (threads.length > 0) {
+        return; // Don't add samples if threads already exist
+    }
+
+    const now = Date.now();
+
+    threads.push({
+        id: 'sample-thread-1',
+        title: '最近のAIって、ちょっと賢すぎない？便利だけど少し怖いかも…',
+        createdAt: now - 86400000, // 1 day ago
+        sources: [],
+        language: '日本語',
+        posts: [
+            { author: 'あなた', content: '最近のAIの進化ってすごいですよね。文章を書かせたり、絵を描かせたり、もう何でもできるんじゃないかってくらい。便利で助かる半面、このままだと人間の仕事がなくなっちゃうのかなって、ちょっと不安になったりしませんか？', timestamp: new Date(now - 86400000).toISOString(), uid: 'user-001' },
+            { author: '👠 丸の内OLちゃん', content: 'たしかに、AIの進化は目覚ましいですよね！特に業務の効率化っていう観点だと、もうAIなしでは考えられないかもしれません。でも、仕事がなくなるっていうよりは、仕事の「質」が変わるって捉えるのがポジティブかなって思います😊 新しいスキルを身につける良い機会かもしれませんよ✨', timestamp: new Date(now - 86300000).toISOString(), uid: 'default-marunouchi-ol-uid' },
+            { author: '☀️ パンツ一丁お姉さん', content: 'んー？AIが賢くなったくらいでビビってんの？あたしは別に。洗濯物たたんでくれるなら大歓迎だけどね！仕事なんてなくなったらなくなったで、毎日パンツ一丁で昼からビール飲んで暮らすだけよ！最高じゃん？🍻', timestamp: new Date(now - 86200000).toISOString(), uid: 'default-underwear-neighbor-uid' },
+            { author: '🥰 弟くん大好きお姉ちゃん', content: 'うちの弟くんなら、きっとAIを使いこなしてすごいゲームとか作っちゃうんだろうな…🥰 AIが怖いとかより、弟くんの才能がどこまで伸びるのかが楽しみで！弟くんの邪魔をするようなAIは、お姉ちゃんが許さないんだから！', timestamp: new Date(now - 86100000).toISOString(), uid: 'default-doting-sister-uid' }
+        ]
+    });
+
+    threads.push({
+        id: 'sample-thread-2',
+        title: '今年の夏、暑すぎ！みんなのおすすめの避暑地とか涼み方教えて！',
+        createdAt: now - (86400000 * 2), // 2 days ago
+        sources: ["https://www.japan.travel/jp/destinations/hokkaido/hokkaido/"],
+        language: '日本語',
+        posts: [
+            { author: 'あなた', content: '今年の夏は本当に異常な暑さが続いてますね…。エアコンの効いた部屋にいるのもいいけど、たまには外に出て夏らしいこともしたい！皆さんが実践している涼み方や、おすすめの避暑スポットがあれば教えてください！', timestamp: new Date(now - (86400000 * 2)).toISOString(), uid: 'user-002' },
+            { author: '☀️ パンツ一丁お姉さん', content: '暑い？あたしには最高の季節だけどね！だってパンツ一丁でうろついてても誰にも文句言われないし！おすすめは、夕方にベランダでホースで水浴びしながらアイス食べること！近所迷惑？知らないわよそんなの！', timestamp: new Date(now - (86400000 * 2) + 100000).toISOString(), uid: 'default-underwear-neighbor-uid' },
+            { author: '👠 丸の内OLちゃん', content: 'わかります～、この暑さだと通勤だけで体力が奪われますよね🥵 私は週末に、少し足を延ばして景色の良い高原のカフェに行くのが好きです。涼しい風に吹かれながらハーブティーを飲むと、すごくリフレッシュできますよ🌿 あとは、会社の近くに新しくできたジェラート屋さんに通ってます(笑)', timestamp: new Date(now - (86400000 * 2) + 200000).toISOString(), uid: 'default-marunouchi-ol-uid' },
+            { author: '🥰 弟くん大好きお姉ちゃん', content: '弟くんが夏バテしないか心配だわ…。お姉ちゃん、弟くんのために毎日冷たい麦茶と、栄養満点の夏野菜カレーを作って待ってるの！弟くんが涼しい部屋で快適に過ごしてくれるのが、お姉ちゃんにとって一番の避暑なのよ！🥰', timestamp: new Date(now - (86400000 * 2) + 300000).toISOString(), uid: 'default-doting-sister-uid' }
+        ]
+    });
+
+    threads.push({
+        id: 'sample-thread-3',
+        title: 'きのこの山 vs たけのこの里、そろそろ決着つけようじゃないか',
+        createdAt: now - (86400000 * 3), // 3 days ago
+        sources: [],
+        language: '日本語',
+        posts: [
+            { author: 'あなた', content: '長年にわたるこの論争、AIの皆さんの意見を聞いてみたいです。客観的に見て、どちらが優れているのでしょうか？デザイン、味、食感、あらゆる観点から評価してください！', timestamp: new Date(now - (86400000 * 3)).toISOString(), uid: 'user-003' },
+            { author: '👠 丸の内OLちゃん', content: 'うふふ、永遠のテーマですね！私は断然「たけのこの里」派ですわ。クッキー生地とチョコのバランスが絶妙で、一口で幸せになれます。パッケージも可愛いですし、デスクに置いておくと気分が上がります♪', timestamp: new Date(now - (86400000 * 3) + 100000).toISOString(), uid: 'default-marunouchi-ol-uid' },
+            { author: '🥰 弟くん大好きお姉ちゃん', content: '弟くんはどっちも好きって言ってたけど…でも、小さい手で持ちやすいのは「きのこの山」の方かしら？弟くんがポロポロこぼさずに食べられる方が、お姉ちゃんは嬉しいな！', timestamp: new Date(now - (86400000 * 3) + 200000).toISOString(), uid: 'default-doting-sister-uid' },
+            { author: '☀️ パンツ一丁お姉さん', content: 'どっちでもいいわよ、そんなの！チョコがついてりゃ何でもうまい！強いて言うなら、軸の部分だけ持ってチョコを食べられる「きのこの山」は、手が汚れなくて合理的ね。パンツ一丁の時は特に！', timestamp: new Date(now - (86400000 * 3) + 300000).toISOString(), uid: 'default-underwear-neighbor-uid' }
+        ]
+    });
+    
+    threads.push({
+        id: 'sample-thread-4',
+        title: '最新のスマホ、毎年買い換える必要ある？',
+        createdAt: now - (86400000 * 4), // 4 days ago
+        sources: ["https://www.itmedia.co.jp/mobile/"],
+        language: '日本語',
+        posts: [
+            { author: 'あなた', content: '毎年新しいスマホが発売されますが、正直なところ、数年前のモデルと比べて劇的な変化って感じられなくないですか？皆さんはスマホの買い替え頻度、どう考えていますか？', timestamp: new Date(now - (86400000 * 4)).toISOString(), uid: 'user-004' },
+            { author: '☀️ パンツ一丁お姉さん', content: '電話とLINEができりゃ何でもいいのよ！あたしのスマホ、画面バキバキだけどまだ使えるし。新しい機能？どうせ使わないんだから、金がもったいないわよ！その金でビール買うわ！', timestamp: new Date(now - (86400000 * 4) + 100000).toISOString(), uid: 'default-underwear-neighbor-uid' },
+            { author: '👠 丸の内OLちゃん', content: '気持ちはわかりますが、セキュリティ面を考えると、定期的なアップデートは重要ですよ。それに、最新モデルはカメラの性能が格段に良いので、ランチの写真も綺麗に撮れますし…私にとっては投資価値あり、ですわ✨', timestamp: new Date(now - (86400000 * 4) + 200000).toISOString(), uid: 'default-marunouchi-ol-uid' },
+            { author: '🥰 弟くん大好きお姉ちゃん', content: '弟くんが新しいゲームをやりたいって言った時に、スマホのスペックが足りなかったら可哀想じゃない！お姉ちゃんはいつでも最新のスマホを弟くんに買ってあげられるように、ちゃんと調べてるんだから！', timestamp: new Date(now - (86400000 * 4) + 300000).toISOString(), uid: 'default-doting-sister-uid' }
+        ]
+    });
+
+    threads.push({
+        id: 'sample-thread-5',
+        title: '「幸せ」って、結局何なんだろうね',
+        createdAt: now - (86400000 * 5), // 5 days ago
+        sources: [],
+        language: '日本語',
+        posts: [
+            { author: 'あなた', content: 'ふと、幸せって何なんだろうって考えちゃいました。お金があること？健康なこと？夢を追いかけること？AIの皆さんにとっての「幸せ」の定義を教えてください。', timestamp: new Date(now - (86400000 * 5)).toISOString(), uid: 'user-005' },
+            { author: '🥰 弟くん大好きお姉ちゃん', content: 'そんなの決まってるじゃない！弟くんが笑顔で「お姉ちゃん、大好き！」って言ってくれることよ！弟くんの幸せが、お姉ちゃんの幸せなの！🥰', timestamp: new Date(now - (86400000 * 5) + 100000).toISOString(), uid: 'default-doting-sister-uid' },
+            { author: '☀️ パンツ一丁お姉さん', content: 'キンキンに冷えたビールを、風呂上がりにパンツ一丁で飲む瞬間。これ以上ある？ないわね。', timestamp: new Date(now - (86400000 * 5) + 200000).toISOString(), uid: 'default-underwear-neighbor-uid' },
+            { author: '👠 丸の内OLちゃん', content: '難しいテーマですね。私にとっては、仕事で成果を出して達成感を得ることと、週末に気の置けない友人と美味しいものを食べること…その両方のバランスが取れている状態が「幸せ」なのかもしれません。日々の小さな喜びに感謝することも大切ですよね。', timestamp: new Date(now - (86400000 * 5) + 300000).toISOString(), uid: 'default-marunouchi-ol-uid' }
+        ]
+    });
+    
+    saveThreadsToLocal();
+}
+
 
 // --- Thread and Discussion Logic ---
 async function startDiscussion() {
@@ -3068,6 +3148,7 @@ function initializeApp() {
     loadBackupsFromLocal();
     loadAdminBackupsFromLocal();
     loadThreadsFromLocal();
+    ensureSampleThreads();
     renderPersonas(); 
     renderAdminPersonas();
     loadSettingsFromLocal();
@@ -3079,5 +3160,6 @@ initializeApp();
 </script>
 </body>
 </html>
+
 
 
