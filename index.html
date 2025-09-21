@@ -327,7 +327,7 @@
                                <option value="中文">中文</option>
                                <option value="Español">Español</option>
                                <option value="Français">Français</option>
-                               <option value="한국어">한국어</option>
+                               <option value="한국어">韓国어</option>
                                <option value="Deutsch">Deutsch</option>
                                <option value="Italiano">Italiano</option>
                                <option value="Português">Português</option>
@@ -510,48 +510,75 @@
             <div id="helpPanelGuide" class="flex-grow min-h-0 overflow-y-auto pr-2 space-y-6 pt-4 text-slate-300">
                 <section>
                     <h4 class="text-lg font-bold text-slate-100 mb-2">1. ２種類のAIペルソナを準備</h4>
-                    <p class="ml-4">このアプリには2種類のAIがいます。設定画面でそれぞれ準備してください。<br>
-                    左上のメニューアイコン <svg class="inline-block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> から設定を開きます。</p>
+                    <p class="ml-4">
+                        このアプリには2種類のAIがいます。<br>
+                        まずは、左上のメニューアイコン <svg class="inline-block w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg> から設定画面を開き、それぞれのAIを準備しましょう。
+                    </p>
                     <ul class="list-disc ml-8 space-y-2 mt-2">
                         <li>
-                            <strong>管理人・ヘルプAI：</strong>
-                            議論の司会進行や、ヘルプチャットでの応答を担当するAIです。「管理人・ヘルプAI設定」でペルソナを作成し、「共通設定」で使用するペルソナを選択します。
+                            <strong>管理人・ヘルプAI：</strong><br>
+                            議論の司会進行や、ヘルプチャットでの応答を担当するAIです。<br>
+                            「管理人・ヘルプAI設定」でペルソナを作成し、「共通設定」で使用するペルソナを選択します。
                         </li>
                         <li>
-                            <strong>議論用AIペルソナ：</strong>
-                            スレッド内で実際に意見を交わすAIです。「議論用AIペルソナ設定」で作成します。議論を開始するには、最低2体の議論用ペルソナが必要です。
+                            <strong>議論用AIペルソナ：</strong><br>
+                            スレッド内で実際に意見を交わすAIです。<br>
+                            「議論用AIペルソナ設定」で作成します。議論を開始するには、最低2体の議論用ペルソナが必要です。
                         </li>
                     </ul>
                     <p class="ml-4 mt-2">どちらのペルソナも、名前や役割を空欄にして追加ボタンを押すと、AIが内容を自動で考えてくれます。</p>
                 </section>
                  <section>
-                    <h4 class="text-lg font-bold text-slate-100 mb-2">2. スレッドの作成</h4>
-                    <p class="ml-4">次に、議論の場となる「スレッド」を作成します。<br>
-                    右上の「スレッド操作」ボタンから「新しいスレッドを作成」を選びます。タイトルと最初の投稿内容を入力し、議論に参加するAIのレス数などを設定して「議論を開始！」ボタンを押すと、自動で議論が始まります。</p>
-                </section>
-                <section>
-                    <h4 class="text-lg font-bold text-slate-100 mb-2">便利な機能：ソースからの自動生成</h4>
-                    <p class="ml-4">WebサイトのURLやテキストを基に、スレッドのタイトルと最初の投稿をAIに自動生成させることもできます。新しいスレッド作成画面でURLやテキストを入力し、「ソースからスレッド内容を生成」ボタンを押してください。</p>
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">2. スレッドの作成と便利な機能</h4>
+                     <ul class="list-disc ml-8 space-y-3 mt-2">
+                        <li>
+                            <strong>スレッドの作成：</strong><br>
+                            右上の「スレッド操作」から「新しいスレッドを作成」を選びます。<br>
+                            タイトルと最初の投稿内容、レス数などを設定して「議論を開始！」ボタンを押すと、自動で議論が始まります。
+                        </li>
+                        <li>
+                            <strong>ソースからの自動生成：</strong><br>
+                            WebサイトのURLやテキストを基に、スレッドのタイトルと最初の投稿をAIに自動生成させることもできます。<br>
+                            新しいスレッド作成画面でURLやテキストを入力し、「ソースからスレッド内容を生成」ボタンを押してください。
+                        </li>
+                        <li>
+                            <strong>レスの一括生成：</strong><br>
+                            「レスを一括生成する」スイッチをONにすると、指定したレス数を一度にまとめて生成できます。<br>
+                            議論の全体像を素早く確認したい場合に便利です。
+                        </li>
+                    </ul>
                 </section>
                  <section>
                     <h4 class="text-lg font-bold text-slate-100 mb-2">3. 議論のコントロール</h4>
-                    <p class="ml-4">AIによるレスの自動生成が始まると、スレッドの下部にコントロールパネルが表示されます。「一時停止」で生成を止めたり、「再開」したり、「停止」して議論を終了させることができます。</p>
+                    <p class="ml-4">
+                        AIによるレスの自動生成が始まると、スレッドの下部にコントロールパネルが表示されます。<br>
+                        「一時停止」「再開」「停止」ボタンで、議論の進行を自由にコントロールできます。<br><br>
+                        議論が終了したスレッドも、「再開」ボタンからレスを追加できます。<br>
+                        その際、「一括生成」スイッチをONにすれば、複数のレスをまとめて追加することも可能です。
+                    </p>
                 </section>
                  <section>
                     <h4 class="text-lg font-bold text-slate-100 mb-2">4. データの保存と管理</h4>
-                    <ul class="list-disc ml-8 space-y-1">
-                        <li><strong>スレッドの保存：</strong> 作成されたスレッドは自動的にブラウザに保存されます。「スレッド操作」→「保存したスレッドを開く」からいつでも過去のスレッドを読み込めます。</li>
-                        <li><strong>ペルソナの管理：</strong> 作成したペルソナも自動で保存されます。設定メニューの「インポート」「エクスポート」で、ペルソナデータをファイルとして保存したり、読み込んだりできます。</li>
-                        <li><strong>スレッドのエクスポート：</strong>「スレッド操作」メニューから、表示中のスレッドをJSONファイルや画像としてダウンロードできます。</li>
+                    <ul class="list-disc ml-8 space-y-2">
+                        <li><strong>スレッドの保存：</strong><br>作成されたスレッドは自動的にブラウザに保存されます。「スレッド操作」→「保存したスレッドを開く」からいつでも過去のスレッドを読み込めます。</li>
+                        <li><strong>ペルソナの管理：</strong><br>作成したペルソナも自動で保存されます。設定メニューの「インポート」「エクスポート」で、ペルソナデータをファイルとしてやり取りできます。</li>
+                        <li><strong>スレッドのエクスポート：</strong><br>「スレッド操作」メニューから、表示中のスレッドをJSONファイルや画像としてダウンロードできます。</li>
                     </ul>
                 </section>
                 <section>
                     <h4 class="text-lg font-bold text-slate-100 mb-2">5. APIキーについて</h4>
                     <p class="ml-4">このアプリケーションは、GoogleのGemini APIを利用してAIの応答を生成しています。</p>
-                    <ul class="list-disc ml-8 space-y-1 mt-2">
-                        <li>このCanvas環境では、デフォルトモデル「gemini-2.5-flash-preview-05-20」はAPIキーなしで利用できます。もしこのファイルをダウンロードして別の環境で利用する際は、ご自身のAPIキーが必要になります。</li>
-                        <li>他のモデル（例: gemini-2.5-flash）を使用したい場合は、<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>などでご自身のGemini APIキーを取得し、設定画面の「共通設定」にあるAPIキー入力欄に設定してください。</li>
-                        <li>入力されたAPIキーは、お使いのブラウザのローカルストレージにのみ保存され、外部に送信されることはありません。</li>
+                    <ul class="list-disc ml-8 space-y-2 mt-2">
+                        <li>
+                            このCanvas環境では、デフォルトモデル「gemini-2.5-flash-preview-05-20」はAPIキーなしで利用できます。<br>
+                            もしこのファイルをダウンロードして別の環境で利用する際は、ご自身のAPIキーが必要になります。
+                        </li>
+                        <li>
+                            他のモデルを使用したい場合は、<a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>などでご自身のGemini APIキーを取得し、設定画面で入力してください。
+                        </li>
+                        <li>
+                            入力されたAPIキーは、お使いのブラウザのローカルストレージにのみ保存され、外部に送信されることはありません。
+                        </li>
                     </ul>
                 </section>
             </div>
@@ -658,7 +685,7 @@
                         <option value="中文">中文</option>
                         <option value="Español">Español</option>
                         <option value="Français">Français</option>
-                        <option value="한국어">한국어</option>
+                        <option value="한국어">韓国어</option>
                         <option value="Deutsch">Deutsch</option>
                         <option value="Italiano">Italiano</option>
                         <option value="Português">Português</option>
@@ -670,7 +697,7 @@
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div class="col-span-1">
-                        <label for="maxResponses" class="block text-sm font-medium text-slate-300">レス停止数</label>
+                        <label for="maxResponses" class="block text-sm font-medium text-slate-300">レス数</label>
                         <input type="number" id="maxResponses" value="5" min="1" max="50" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3">
                     </div>
                     <div class="col-span-1">
@@ -681,6 +708,16 @@
                         <label for="responseLength" class="block text-sm font-medium text-slate-300">最大文字数</label>
                         <input type="number" id="responseLength" value="30" min="10" max="500" class="mt-1 block w-full bg-slate-700 border-slate-600 text-white rounded-lg shadow-sm py-2 px-3">
                     </div>
+                </div>
+                <div class="pt-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-300">レスを一括生成する</span>
+                        <label for="batchGenerationToggle" class="inline-flex relative items-center cursor-pointer">
+                            <input type="checkbox" value="" id="batchGenerationToggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">ONにすると、指定したレス数を一度にまとめて生成します。議論の全体像を素早く確認したい場合に便利です。（実験的な機能）</p>
                 </div>
                 <div class="flex justify-end space-x-3 pt-2">
                     <button id="cancelCreateThreadBtn" class="bg-slate-600 text-slate-200 py-2 px-4 rounded-lg hover:bg-slate-500">キャンセル</button>
@@ -734,6 +771,13 @@
                         <div id="pausedControls" class="hidden items-center space-x-2">
                             <label for="continueMaxResponses" class="text-sm text-slate-300">レス停止数:</label>
                             <input type="number" id="continueMaxResponses" class="w-20 bg-slate-600 border-slate-500 text-white rounded-md shadow-sm py-1 px-2 text-sm">
+                            <div class="flex items-center space-x-2 pl-4">
+                                <span class="text-sm font-medium text-slate-300">一括生成</span>
+                                <label for="continueBatchGenerationToggle" class="inline-flex relative items-center cursor-pointer">
+                                    <input type="checkbox" value="" id="continueBatchGenerationToggle" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
                         </div>
                         <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
                             <button id="pauseResumeBtn" class="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 text-sm font-semibold">一時停止</button>
@@ -781,6 +825,7 @@ const threadHeader = document.getElementById('threadHeader');
 const settingsLanguageSelection = document.getElementById('settingsLanguageSelection');
 const threadLanguageSelection = document.getElementById('threadLanguageSelection');
 const adminAiPersonaSelection = document.getElementById('adminAiPersonaSelection');
+const batchGenerationToggle = document.getElementById('batchGenerationToggle');
 
 const openMenuBtn = document.getElementById('openMenuBtn');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
@@ -878,6 +923,7 @@ const generationStatus = document.getElementById('generationStatus');
 const generationStatusText = document.getElementById('generationStatusText');
 const pausedControls = document.getElementById('pausedControls');
 const continueMaxResponsesInput = document.getElementById('continueMaxResponses');
+const continueBatchGenerationToggle = document.getElementById('continueBatchGenerationToggle');
 const pauseResumeBtn = document.getElementById('pauseResumeBtn');
 const stopBtn = document.getElementById('stopBtn');
 const adminAiReasoning = document.getElementById('adminAiReasoning');
@@ -1970,8 +2016,11 @@ async function callGemini(systemPrompt, userPrompt, options = {}, retries = 3, d
     const modelToUse = options.model || settingsModelSelection.value;
     const userApiKey = apiKeyInput.value.trim();
 
+    // The 'gemini-2.5-flash-preview-05-20' model can be used without an API key in the Canvas environment.
+    // For other environments or models, a key is required.
+    const isCanvasEnvironment = typeof window.__initial_auth_token !== 'undefined';
     if (modelToUse !== 'gemini-2.5-flash-preview-05-20' && !userApiKey) {
-        throw new Error(`モデル「${modelToUse}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
+         throw new Error(`モデル「${modelToUse}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
     }
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${userApiKey}`;
@@ -1986,7 +2035,11 @@ async function callGemini(systemPrompt, userPrompt, options = {}, retries = 3, d
         payload.tools = [{ "google_search": {} }];
     }
     if (options.responseMimeType) {
-        payload.generationConfig = { responseMimeType: options.responseMimeType };
+        const generationConfig = { responseMimeType: options.responseMimeType };
+        if(options.responseSchema) {
+            generationConfig.responseSchema = options.responseSchema;
+        }
+        payload.generationConfig = generationConfig;
     }
 
     try {
@@ -2146,11 +2199,151 @@ function ensureSampleThreads() {
 
 
 // --- Thread and Discussion Logic ---
-async function startDiscussion() {
+
+// Wrapper function to decide which generation method to use
+function handleStartDiscussion() {
+    if (batchGenerationToggle.checked) {
+        startBatchDiscussion();
+    } else {
+        startSequentialDiscussion();
+    }
+}
+
+
+async function startBatchDiscussion() {
+    const title = threadTitleInput.value.trim();
+    const body = threadBodyInput.value.trim();
+    
+    if (!title || !body) {
+        alert('スレッドタイトルと本文を入力してください。');
+        return;
+    }
+
+    currentDiscussionPersonas = [...personas];
+    if (currentDiscussionPersonas.length < 2) {
+        alert('少なくとも2つの議論参加用AIペルソナを登録してください。');
+        return;
+    }
+
+    closeCreateThreadModal();
+    
+    const threadId = crypto.randomUUID();
+    currentThreadId = threadId;
+    const userUID = crypto.randomUUID().slice(0, 8);
+    
+    currentThread = {
+        id: threadId,
+        title: title,
+        createdAt: Date.now(),
+        sources: [...sourceUrls],
+        language: threadLanguageSelection.value,
+        posts: [{ author: 'あなた', content: body, timestamp: new Date().toISOString(), uid: userUID }]
+    };
+
+    renderThread(title); // Show the initial post immediately
+    threadContainer.innerHTML += `
+        <div id="batch-loader" class="text-center py-10">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-slate-400">スレッド全体を生成中です...</p>
+        </div>`;
+
+    try {
+        const numResponsesToGenerate = parseInt(maxResponsesInput.value, 10);
+        const batchResponses = await generateBatchDiscussion(numResponsesToGenerate);
+
+        if (!batchResponses || !Array.isArray(batchResponses.discussion)) {
+             throw new Error("AIから予期しない形式のレスポンスが返されました。");
+        }
+        
+        const newPosts = batchResponses.discussion.map(item => {
+            const persona = currentDiscussionPersonas.find(p => p.name === item.author_name);
+            return {
+                author: persona ? `${persona.emoji} ${persona.name}` : item.author_name,
+                content: item.response_content,
+                timestamp: new Date().toISOString(),
+                uid: persona ? persona.uid : 'unknown-ai'
+            };
+        });
+
+        currentThread.posts.push(...newPosts);
+        threads.push(currentThread);
+        saveThreadsToLocal();
+        
+        // Re-render the entire thread with the new posts
+        renderThread(currentThread.title);
+
+    } catch(error) {
+        console.error('Batch discussion generation failed:', error);
+        alert(`一括生成に失敗しました: ${error.message}`);
+        document.getElementById('batch-loader')?.remove();
+    }
+}
+
+
+async function generateBatchDiscussion(numResponsesToGenerate) {
+    const model = settingsModelSelection.value;
+    const lenResponse = parseInt(responseLengthInput.value, 10);
+
+    const personaDetails = currentDiscussionPersonas.map(p => `- ${p.name} (Role: ${p.prompt})`).join('\n');
+    const historyText = currentThread.posts.map(p => `${p.author}: ${p.content}`).join('\n\n');
+
+    const systemPrompt = `あなたは、オンライン掲示板の議論をシミュレートするマスターAIです。与えられたペルソナ、スレッドのテーマ、これまでの会話履歴に基づいて、自然で魅力的な議論を続けてください。`;
+    const userPrompt = `以下の設定に基づいて、掲示板の議論をシミュレートしてください。
+
+# 指示
+- 議論は指定された言語（${currentThread.language}）で行ってください。
+- これまでの会話に続けて、合計で${numResponsesToGenerate}個の新しいレスポンスを生成してください。
+- 各レスポンスの長さは、およそ${lenResponse}文字にしてください。
+- 各レスポンスは、読みやすくなるように適宜改行を入れてください。
+- 参加ペルソナたちは、互いの発言に自然に反応し、議論を発展させてください。
+- 出力は、指定されたJSONスキーマに厳密に従ってください。他のテキストは含めないでください。
+
+# スレッドのテーマ
+${currentThread.title}
+
+# これまでの会話履歴
+${historyText}
+
+# 参加ペルソナリスト
+${personaDetails}
+`;
+    
+    const schema = {
+        type: 'OBJECT',
+        properties: {
+            discussion: {
+                type: 'ARRAY',
+                items: {
+                    type: 'OBJECT',
+                    properties: {
+                        author_name: {
+                            type: 'STRING',
+                            description: '参加ペルソナリストから選ばれた発言者の名前。'
+                        },
+                        response_content: {
+                            type: 'STRING',
+                            description: 'そのペルソナとして生成されたレスポンスの内容。'
+                        }
+                    },
+                    required: ['author_name', 'response_content']
+                }
+            }
+        },
+        required: ['discussion']
+    };
+
+    return await callGemini(systemPrompt, userPrompt, { 
+        model, 
+        responseMimeType: 'application/json',
+        responseSchema: schema
+    });
+}
+
+
+async function startSequentialDiscussion() {
     const title = threadTitleInput.value.trim();
     const body = threadBodyInput.value.trim();
     const selectedModel = settingsModelSelection.value;
-    const userApiKey = apiKeyInput.value.trim();
 
     if (!title || !body) {
         alert('スレッドタイトルと本文を入力してください。');
@@ -2158,14 +2351,8 @@ async function startDiscussion() {
     }
 
     currentDiscussionPersonas = [...personas];
-
     if (currentDiscussionPersonas.length < 2) {
         alert('少なくとも2つの議論参加用AIペルソナを登録してください。');
-        return;
-    }
-
-    if (selectedModel !== 'gemini-2.5-flash-preview-05-20' && !userApiKey) {
-        alert(`モデル「${selectedModel}」を使用するにはAPIキーが必要です。設定メニューから入力してください。`);
         return;
     }
 
@@ -2192,9 +2379,7 @@ async function startDiscussion() {
         createdAt: Date.now(),
         sources: [...sourceUrls],
         language: discussionLanguage,
-        posts: [
-            { author: 'あなた', content: body, timestamp: new Date().toISOString(), uid: userUID }
-        ]
+        posts: [{ author: 'あなた', content: body, timestamp: new Date().toISOString(), uid: userUID }]
     };
     
     threads.push(currentThread);
@@ -2337,7 +2522,7 @@ async function generateResponse(persona, length, referenceCount) {
 ${historyText}
 
 # Your Instructions
-Based on the conversation history above, act as your role (${persona.emoji} ${persona.name} ID:${persona.uid}) and provide the next statement. Your statement should be natural and follow the flow of the conversation. ${lengthInstruction}
+Based on the conversation history above, act as your role (${persona.emoji} ${persona.name} ID:${persona.uid}) and provide the next statement. Your statement should be natural and follow the flow of the conversation. Please add appropriate line breaks to make it easier to read. ${lengthInstruction}
 
 Your response (in ${discussionLanguage}):`;
 
@@ -2433,6 +2618,7 @@ function updateControlsForLoadedThread() {
     pauseResumeBtn.textContent = '再開';
     stopBtn.classList.add('hidden');
     adminAiReasoning.textContent = '保存されたスレッドを読み込みました。ここから議論を再開できます。';
+    continueBatchGenerationToggle.checked = false;
 }
 
 function updateControlsForFinishedState() {
@@ -2445,6 +2631,7 @@ function updateControlsForFinishedState() {
     pauseResumeBtn.textContent = '再開';
     stopBtn.classList.add('hidden');
     adminAiReasoning.textContent = '議論は終了しました。お疲れ様でした！✨';
+    continueBatchGenerationToggle.checked = false;
 }
 
 function updateControlsForPauseState() {
@@ -2460,8 +2647,59 @@ function updateGenerationStatus() {
     generationStatusText.textContent = `AIがレスを生成中... (${responseCount + 1}/${maxResponses})`;
 }
 
-function handlePauseResume() {
-    if (isFinished) {
+async function resumeBatchDiscussion(newMaxResponses) {
+    generationControls.classList.remove('hidden');
+    generationControls.classList.add('flex');
+    pausedControls.classList.add('hidden');
+    generationStatus.classList.remove('hidden');
+    generationStatus.classList.add('flex');
+    generationStatusText.textContent = 'スレッド全体を生成中です...';
+    adminAiReasoning.textContent = '';
+    stopBtn.classList.add('hidden');
+    pauseResumeBtn.classList.add('hidden');
+
+    try {
+        const numToGenerate = newMaxResponses - responseCount;
+        if (numToGenerate <= 0) return;
+
+        const batchResponses = await generateBatchDiscussion(numToGenerate);
+
+        if (!batchResponses || !Array.isArray(batchResponses.discussion)) {
+            throw new Error("AIから予期しない形式のレスポンスが返されました。");
+        }
+
+        const newPosts = batchResponses.discussion.map(item => {
+            const persona = currentDiscussionPersonas.find(p => p.name === item.author_name);
+            return {
+                author: persona ? `${persona.emoji} ${persona.name}` : item.author_name,
+                content: item.response_content,
+                timestamp: new Date().toISOString(),
+                uid: persona ? persona.uid : 'unknown-ai'
+            };
+        });
+
+        currentThread.posts.push(...newPosts);
+        saveThreadsToLocal();
+
+        renderThread(currentThread.title);
+        
+        responseCount = currentThread.posts.length - 1;
+        maxResponses = newMaxResponses;
+        isFinished = true;
+        updateControlsForFinishedState();
+        pauseResumeBtn.classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Batch discussion resume failed:', error);
+        alert(`一括再開に失敗しました: ${error.message}`);
+        updateControlsForFinishedState();
+        pauseResumeBtn.classList.remove('hidden');
+    }
+}
+
+
+async function handlePauseResume() {
+    if (isFinished) { // Resuming a finished/loaded thread
         if (personas.length < 2) {
             alert('議論を再開するには、最低2つの議論参加用AIペルソナが必要です。');
             return;
@@ -2471,13 +2709,18 @@ function handlePauseResume() {
             alert('有効なレス停止数を入力してください。現在のレス数より大きい必要があります。');
             return;
         }
-        maxResponses = newMax;
-        isGenerating = true;
-        isFinished = false;
-        isPaused = false;
-        showGenerationControls();
-        generationLoop();
-    } else {
+
+        if (continueBatchGenerationToggle.checked) {
+            await resumeBatchDiscussion(newMax);
+        } else {
+            maxResponses = newMax;
+            isGenerating = true;
+            isFinished = false;
+            isPaused = false;
+            showGenerationControls();
+            generationLoop();
+        }
+    } else { // Pausing/resuming an ongoing generation
         isPaused = !isPaused;
         if (isPaused) {
             updateControlsForPauseState();
@@ -2867,7 +3110,26 @@ function addChatMessage(sender, message) {
 function resetHelpChat() {
     chatMessages.innerHTML = '';
     const adminPersona = adminPersonas.find(p => p.id.toString() === adminAiPersonaSelection.value);
-    const welcomeMessage = adminPersona ? 'こんにちは！アプリの使い方で分からないことがあれば、なんでも聞いてくださいね♪' : 'ようこそ！ご質問をどうぞ。';
+    const lang = settingsLanguageSelection.value;
+    
+    const welcomeMessages = {
+        '日本語': 'こんにちは！アプリの使い方で分からないことがあれば、なんでも聞いてくださいね♪',
+        'English': 'Hello! If you have any questions about how to use the app, feel free to ask anything♪',
+        '中文': '你好！如果对应用的使用方法有任何疑问，请随时提问♪',
+        'Español': '¡Hola! Si tienes alguna pregunta sobre cómo usar la aplicación, no dudes en preguntar♪',
+        'Français': 'Bonjour ! Si vous avez des questions sur l\'utilisation de l\'application, n\'hésitez pas à les poser♪',
+        '한국어': '안녕하세요! 앱 사용법에 대해 궁금한 점이 있으면 무엇이든 물어보세요♪',
+        'Deutsch': 'Hallo! Wenn Sie Fragen zur Verwendung der App haben, fragen Sie einfach♪',
+        'Italiano': 'Ciao! Se hai domande su come usare l\'app, non esitare a chiedere♪',
+        'Português': 'Olá! Se tiver alguma dúvida sobre como usar o aplicativo, sinta-se à vontade para perguntar♪',
+        'Русский': 'Здравствуйте! Если у вас есть вопросы по использованию приложения, не стесняйтесь задавать их♪',
+        'العربية': 'مرحباً! إذا كان لديك أي أسئلة حول كيفية استخدام التطبيق، فلا تتردد في طرحها♪',
+        'हिन्दी': 'नमस्ते! यदि आपके पास ऐप का उपयोग करने के तरीके के बारे में कोई प्रश्न है, तो बेझिझक कुछ भी पूछें♪',
+        'Bahasa Indonesia': 'Halo! Jika Anda memiliki pertanyaan tentang cara menggunakan aplikasi, jangan ragu untuk bertanya♪'
+    };
+    
+    const welcomeMessage = welcomeMessages[lang] || welcomeMessages['English']; // Fallback to English
+    
     addChatMessage('ai', welcomeMessage);
     switchHelpTab('guide');
 }
@@ -2890,7 +3152,11 @@ async function handleChatSend() {
         const systemPrompt = adminPersona ? adminPersona.prompt : 'あなたは親切なアシスタントです。';
 
         const context = [...document.querySelectorAll('#helpPanelGuide section')].map(s => s.innerText).join('\n\n');
-        const userPrompt = `あなたは「AI自動生成掲示板」の操作方法を案内するアシスタントです。あなたのペルソナ（性格）はシステムプロンプトに設定されています。そのペルソナとして、以下のアプリ仕様を参考にユーザーの質問に答えてください。回答は常に、指定されたデフォルト言語（${lang}）で行ってください。
+        const userPrompt = `あなたは「AI自動生成掲示板」の操作方法を案内するアシスタントです。あなたのペルソナ（性格）はシステムプロンプトに設定されています。そのペルソナとして、以下のアプリ仕様を参考にユーザーの質問に答えてください。
+
+# 絶対的なルール
+- 回答は必ず「${lang}」で生成してください。他の言語は一切使用しないでください。
+- 回答は読みやすくなるように、適宜改行を入れてください。
 
 # アプリの仕様
 ${context}
@@ -2917,7 +3183,7 @@ ${userInput}`;
 addPersonaBtn.addEventListener('click', () => addPersona(false));
 addAdminPersonaBtn.addEventListener('click', () => addPersona(true));
 
-startThreadBtn.addEventListener('click', startDiscussion);
+startThreadBtn.addEventListener('click', handleStartDiscussion);
 openMenuBtn.addEventListener('click', openMenu);
 closeMenuBtn.addEventListener('click', closeMenu);
 menuBackdrop.addEventListener('click', closeMenu);
